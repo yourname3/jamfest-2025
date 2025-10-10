@@ -34,6 +34,14 @@ fn import_mesh(mesh: &AiMesh) -> MeshData {
     let texcoords = mesh.texture_coords.get(0)
         .as_ref().unwrap().as_ref().unwrap();
 
+    // If there is a second texcoords channel, use it, otherwise default back
+    // to texcoords
+    let texcoords_2 = match mesh.texture_coords.get(1).as_ref() {
+        // Also fallback here
+        Some(coords) => coords.as_ref().unwrap_or(texcoords),
+        None => texcoords,
+    };
+
     for i in 0..mesh.vertices.len() {
         let vertex = Vertex {
             position: conv_vec3(mesh.vertices[i]),
@@ -41,7 +49,8 @@ fn import_mesh(mesh: &AiMesh) -> MeshData {
 
             // For now, we have to manaully flip the UVs, as it doesn't necessarily
             // seem (?) like asset-importer-rs does it for us?
-            uv:       [texcoords[i].x, 1.0 - texcoords[i].y]
+            uv:       [texcoords[i].x, 1.0 - texcoords[i].y],
+            uv2:      [texcoords_2[i].x, 1.0 - texcoords_2[i].y],
         };
 
         vertex_data.push(vertex);

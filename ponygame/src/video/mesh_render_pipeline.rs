@@ -11,6 +11,7 @@ pub struct Vertex {
     pub position: [f32; 3],
     pub normal  : [f32; 3],
     pub uv      : [f32; 2],
+    pub uv2     : [f32; 2],
 }
 
 impl Vertex {
@@ -18,7 +19,8 @@ impl Vertex {
         const ATTRIBS: &[wgpu::VertexAttribute] = &wgpu::vertex_attr_array![
             0 => Float32x3,
             1 => Float32x3,
-            2 => Float32x2
+            2 => Float32x2,
+            3 => Float32x2,
          ];
 
         wgpu::VertexBufferLayout {

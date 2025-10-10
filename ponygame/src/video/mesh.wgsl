@@ -77,6 +77,7 @@ struct VertexInput {
     @location(0) position: vec3f,
     @location(1) normal  : vec3f,
     @location(2) uv      : vec2f,
+    @location(3) uv2     : vec2f,
 }
 
 struct VertexOutput {
@@ -86,6 +87,7 @@ struct VertexOutput {
     @location(0) f_pos   : vec3f,
     @location(1) f_normal: vec3f,
     @location(2) uv      : vec2f,
+    @location(3) uv2     : vec2f,
 }
 
 fn expand_transformation_matrix(in: mat4x3f) -> mat4x4f {
@@ -123,6 +125,7 @@ fn vs_main(
     // at all with armatures.
     out.f_normal = (viewport.view * m * vec4(vertex.normal, 0.0)).xyz;
     out.uv = vertex.uv;
+    out.uv2 = vertex.uv2;
 
     return out;
 }
