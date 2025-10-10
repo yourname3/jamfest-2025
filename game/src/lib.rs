@@ -54,9 +54,7 @@ impl Assets {
                 roughness: 0.95,
                 reflectance: 0.0,
                 albedo_texture: texture_srgb!(ctx, "../test/horse_albedo.png"),
-                metallic_roughness_texture: texture_dummy!(ctx),
-
-                cached_bind_group: GpMaybe::none(),
+                ..PBRMaterial::default(ctx)
             }),
 
             node_mix: mesh!(ctx, "./assets/mix_node.glb"),
@@ -65,6 +63,7 @@ impl Assets {
                 roughness: 0.0,
                 reflectance: 0.5,
                 albedo_texture: texture_srgb!(ctx, "./assets/label_mix.png"),
+                albedo_decal_texture: texture_dummy!(ctx),
                 ..PBRMaterial::default(ctx)
             }),
 

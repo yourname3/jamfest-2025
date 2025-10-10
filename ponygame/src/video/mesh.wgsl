@@ -67,7 +67,9 @@ struct ModelUniform {
 @group(1) @binding(0) var<uniform> pbr: PBR;
 @group(1) @binding(1) var albedo_t: texture_2d<f32>;
 @group(1) @binding(2) var metallic_rough_t: texture_2d<f32>;
-@group(1) @binding(3) var pbr_s: sampler;
+@group(1) @binding(3) var albedo_decal_t: texture_2d<f32>;
+@group(1) @binding(4) var metallic_rough_decal_t: texture_2d<f32>;
+@group(1) @binding(5) var pbr_s: sampler;
 
 @group(2) @binding(0) var<uniform> model: ModelUniform;
 
@@ -257,22 +259,31 @@ fn BRDF_envmap(bin_immut: BrdfIn) -> vec3f {
 
 @fragment
 fn pbr_main(in: VertexOutput) -> @location(0) vec4f {
+    let albedo_decal = textureSample(albedo_decal_t, pbr_s, in.uv);
+
     var metallic = pbr.metallic;
     var perceptual_roughness = pbr.roughness;
     // TODO: Should this be gated behind a flag? Is the dummy texture lookup
     // slow enough?
     if true {
-        let data = textureSample(metallic_rough_t, pbr_s, in.uv);
+        var data = textureSample(metallic_rough_t, pbr_s, in.uv);
+        
+        if albedo_decal.a > 0 {
+            let data2 = textureSample(metallic_rough_decal_t, pbr_s, in.uv);
+            data = mix(data, data2, albedo_decal.a);
+        }
+        // Compute based on textures
         metallic *= data.b;
         perceptual_roughness *= data.g;
-        // Compute based on textures
     }
 
     var reflectance = pbr.reflectance;
 
     var base_color = vec3(1.0, 1.0, 1.0);
     if true {
-        base_color *= textureSample(albedo_t, pbr_s, in.uv).rgb;
+        var albedo_tex = textureSample(albedo_t, pbr_s, in.uv).rgb;
+        albedo_tex = mix(albedo_tex, albedo_decal.rgb, albedo_decal.a);
+        base_color *= albedo_tex;
     }
 
     var diffuse_color = (1.0 - metallic) * base_color;

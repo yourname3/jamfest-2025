@@ -275,6 +275,9 @@ pub struct PBRMaterial {
     pub albedo_texture: Texture,
     pub metallic_roughness_texture: Texture,
 
+    pub albedo_decal_texture: Texture,
+    pub metallic_roughness_decal_texture: Texture,
+
     pub cached_bind_group: GpMaybe<wgpu::BindGroup>,
 }
 
@@ -287,6 +290,10 @@ impl PBRMaterial {
             reflectance: 0.5,
             albedo_texture: Texture::dummy(ctx, Some("Texture::dummy::albedo")),
             metallic_roughness_texture: Texture::dummy(ctx, Some("Texture::dummy::metallic_roughness")),
+
+            // Default decal is totally transparent
+            albedo_decal_texture: Texture::dummy_transparent(ctx, Some("Texture::dummy::albedo")),
+            metallic_roughness_decal_texture: Texture::dummy(ctx, Some("Texture::dummy::metallic_roughness")),
             cached_bind_group: GpMaybe::none(),
         }
     }
@@ -429,8 +436,16 @@ impl PBRMaterial {
                             resource: wgpu::BindingResource::TextureView(&self.metallic_roughness_texture.view)
                         },
                         wgpu::BindGroupEntry {
-                            // TODO: Let use choose sampler?
                             binding: 3,
+                            resource: wgpu::BindingResource::TextureView(&self.albedo_decal_texture.view),
+                        },
+                        wgpu::BindGroupEntry {
+                            binding: 4,
+                            resource: wgpu::BindingResource::TextureView(&self.metallic_roughness_decal_texture.view),
+                        },
+                        wgpu::BindGroupEntry {
+                            // TODO: Let use choose sampler?
+                            binding: 5,
                             resource: wgpu::BindingResource::Sampler(&ctx.samplers.linear_clamp)
                         }
                     ],
@@ -519,7 +534,11 @@ impl Layouts {
                 simple_texture(1),
                 // Metallic-roughness texture
                 simple_texture(2),
-                simple_sampler(3),
+                // Albedo decal
+                simple_texture(3),
+                // Metallic-roughness decal
+                simple_texture(4),
+                simple_sampler(5),
             ]
         });
 

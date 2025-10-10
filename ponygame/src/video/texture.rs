@@ -75,6 +75,17 @@ impl Texture {
         Self::from_image_rgba8srgb(ctx, &dynamic, label, false)
     }
 
+    pub fn dummy_transparent(
+        ctx: &RenderCtx,
+        label: Option<&str>,
+    ) -> Self {
+        let mut rgb = image::RgbaImage::new(1, 1);
+        *rgb.get_pixel_mut(0, 0) = image::Rgba::<u8>([255, 255, 255, 0]);
+        let dynamic = image::DynamicImage::ImageRgba8(rgb);
+
+        Self::from_image_rgba8srgb(ctx, &dynamic, label, false)
+    }
+
     pub fn from_image_rgba16unorm(
         ctx: &RenderCtx,
         image: &image::DynamicImage,
