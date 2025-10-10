@@ -1,6 +1,6 @@
 use ponygame::game;
 // /
-use ponygame::cgmath::{point3, vec3, SquareMatrix};
+use ponygame::cgmath::{point3, vec3, Matrix4, SquareMatrix};
 use ponygame::cgmath;
 use ponygame::log;
 
@@ -72,17 +72,17 @@ impl Assets {
         }
     }
 
-    fn node_mix(&self, ctx: &RenderCtx) -> Gp<MeshInstance> {
+    fn node_mix(&self, ctx: &RenderCtx, transform: cgmath::Matrix4<f32>) -> Gp<MeshInstance> {
         Gp::new(MeshInstance::new(ctx,
             self.node_mix.clone(),
             self.nodes_material.clone(),
-            cgmath::Matrix4::identity()))
+            transform))
     }
 }
 
 
 pub struct GameplayLogic {
-    
+    theta: f32,
 
     assets: Assets,
 }
@@ -100,24 +100,35 @@ impl ponygame::Gameplay for GameplayLogic {
         // let transform1 = cgmath::Matrix4::from_translation(vec3( 0.5, 0.0, 0.0));
 
         engine.main_world.set_envmap(&Gp::new(Texture::from_bytes_rgba16unorm(ctx,
-            include_bytes!("../test/horn-koppe_spring_1k.exr"),
+            include_bytes!("./assets/preller_drive_1k.exr"),
             Some("horn-koppe_spring_1k.exr"),
             true).unwrap()));
 
-        engine.main_world.push_mesh(assets.node_mix(ctx));
+        for i in 0..5 {
+            engine.main_world.push_mesh(assets.node_mix(ctx,
+                Matrix4::from_translation(vec3(0.0, 0.0, i as f32 * 2.0)
+            )));
+        }
 
         engine.main_camera.position.set(point3(0.0, 15.0, 3.0));
         engine.main_camera.target.set(point3(0.0, 0.0, 0.0));
 
         GameplayLogic {
-            assets
+            assets,
+            theta: 0.0,
         }
     }
 
-    fn tick(&mut self, game: &mut PonyGame) {
-        let ctx = game.render_ctx();
+    fn tick(&mut self, engine: &mut PonyGame) {
+        let ctx = engine.render_ctx();
 
+        self.theta += 0.1;
 
+        //let offset = vec3(0.3 * f32::cos(self.theta), 0.0, 0.3 * f32::sin(self.theta));
+
+        //engine.main_camera.position.set(point3(0.0, 15.0, 3.0) + offset);
+        //engine.main_camera.target.set(point3(0.0, 0.0, 0.0) + offset);
+        //game.main_camera.position.set(point3(15.0 * f32::cos(self.theta), 15.0 * f32::sin(self.theta), 0.0));
     }
 }
 
