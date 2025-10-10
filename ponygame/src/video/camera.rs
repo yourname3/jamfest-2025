@@ -13,7 +13,7 @@ pub const OPENGL_TO_WGPU_MATRIX: cgmath::Matrix4<f32> = cgmath::Matrix4::from_co
 
 pub struct Camera {
     pub position: Cell<cgmath::Point3<f32>>,
-    pub target: cgmath::Point3<f32>,
+    pub target: Cell<cgmath::Point3<f32>>,
     pub up: cgmath::Vector3<f32>,
 
     pub fovy: f32,
@@ -25,7 +25,7 @@ impl Camera {
     pub fn demo() -> Self {
         Camera {
             position: Cell::new((0.0, 0.0, 5.0).into()),
-            target: (0.0, 0.0, 0.0).into(),
+            target: Cell::new((0.0, 0.0, 0.0).into()),
             up: (0.0, 1.0, 0.0).into(),
             fovy: 45.0,
             znear: 0.1,
@@ -35,13 +35,13 @@ impl Camera {
 
     // TODO: We really should cache this...
     pub fn get_view_matrix(&self) -> cgmath::Matrix4<f32> {
-        cgmath::Matrix4::look_at_rh(self.position.get(), self.target, self.up)
+        cgmath::Matrix4::look_at_rh(self.position.get(), self.target.get(), self.up)
     }
 
     pub fn build_vp(&self, viewport: &Viewport) -> cgmath::Matrix4<f32> {
         // TODO: Cache view & projection matrices independently (and also do
         // one projection-matrix per viewport)
-        let view = cgmath::Matrix4::look_at_rh(self.position.get(), self.target, self.up);
+        let view = cgmath::Matrix4::look_at_rh(self.position.get(), self.target.get(), self.up);
 
         let aspect: f32 = viewport.width as f32 / viewport.height as f32;
 
@@ -54,7 +54,7 @@ impl Camera {
     pub fn to_viewport_uniform(&self, viewport: &Viewport) -> ViewportUniform {
         // TODO: Cache view & projection matrices independently (and also do
         // one projection-matrix per viewport)
-        let view = cgmath::Matrix4::look_at_rh(self.position.get(), self.target, self.up);
+        let view = cgmath::Matrix4::look_at_rh(self.position.get(), self.target.get(), self.up);
 
         let aspect: f32 = viewport.width as f32 / viewport.height as f32;
 

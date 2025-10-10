@@ -7,6 +7,7 @@ pub mod camera;
 pub mod world;
 
 use std::{cell::{Cell, RefCell}, collections::HashMap, rc::Rc};
+use cgmath::vec3;
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 
 use wgpu::util::DeviceExt;
@@ -275,6 +276,20 @@ pub struct PBRMaterial {
     pub metallic_roughness_texture: Texture,
 
     pub cached_bind_group: GpMaybe<wgpu::BindGroup>,
+}
+
+impl PBRMaterial {
+    pub fn default(ctx: &RenderCtx) -> Self {
+        PBRMaterial {
+            albedo: vec3(1.0, 1.0, 1.0),
+            metallic: 0.0,
+            roughness: 1.0,
+            reflectance: 0.5,
+            albedo_texture: Texture::dummy(ctx, Some("Texture::dummy::albedo")),
+            metallic_roughness_texture: Texture::dummy(ctx, Some("Texture::dummy::metallic_roughness")),
+            cached_bind_group: GpMaybe::none(),
+        }
+    }
 }
 
 #[repr(C)]

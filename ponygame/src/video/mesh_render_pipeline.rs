@@ -72,7 +72,7 @@ impl MeshInstance {
             ],
         });
 
-        Self {
+        let instance = Self {
             mesh,
             material,
 
@@ -80,7 +80,10 @@ impl MeshInstance {
 
             uniform_buffer,
             instance_bind_group,
-        }
+        };
+
+        instance.update(ctx);
+        instance
     }
 
     pub fn update(&self, ctx: &RenderCtx) {
