@@ -20,11 +20,6 @@ pub struct Sound {
     buffer: rodio::buffer::SamplesBuffer,
 }
 
-pub struct SoundPlayback<'b> {
-    buffer: &'b rodio::buffer::SamplesBuffer,
-    cur_idx: usize,
-}
-
 impl Sound {
     pub fn from_data(data: &'static [u8]) -> Sound {
         let cursor = std::io::Cursor::new(data);
@@ -56,10 +51,6 @@ impl Audio {
     fn new() -> Self {
         if let Ok(stream_handle) = rodio::OutputStreamBuilder::open_default_stream() {
             log::info!("audio: using backend: {:?}", stream_handle.config());
-
-            let wave = rodio::source::SineWave::new(740.0)
-                .amplify(0.2);
-            stream_handle.mixer().add(wave);
 
             return Audio {
                 backend: AudioBackend::Open(stream_handle)
