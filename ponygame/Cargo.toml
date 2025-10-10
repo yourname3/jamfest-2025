@@ -1,0 +1,52 @@
+[package]
+name = "ponygame"
+version = "0.1.0"
+edition = "2024"
+
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = ["-Oz",
+    "--enable-mutable-globals",
+    "--enable-bulk-memory",
+    "--enable-nontrapping-float-to-int",
+    "--enable-threads",
+    "--enable-sign-ext",
+    "--enable-tail-call",
+    "--enable-multivalue",
+    "--enable-memory64",
+    "--enable-extended-const"
+]
+
+[dependencies]
+asset-importer-rs-core = "0.3.0"
+asset-importer-rs-gltf = "0.3.0"
+asset-importer-rs-scene = "0.3.0"
+bytemuck = { version = "1.23.2", features = ["derive"] }
+cgmath = "0.18.0"
+env_logger = "0.11.8"
+image = { version = "0.25.8", default-features = false, features = ["exr", "png"] }
+log = "0.4.28"
+pollster = "0.4.0"
+raw-window-handle = "0.6.2"
+rodio = "0.21.1"
+wasm-bindgen = "0.2"
+web-time = "1.1.0"
+wgpu = { version = "27.0.0" }
+winit = "0.30.12"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+console_error_panic_hook = "0.1.6"
+console_log = "1.0"
+wgpu = { version = "27.0.0", features = ["webgl"]}
+wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4.30"
+web-sys = { version = "0.3", features = [
+    "Document",
+    "Window",
+    "Element",
+]}
+# Necessary for cpal to realize we want its web backend, see 
+# https://github.com/RustAudio/cpal/issues/881
+cpal = {version = "0.16.0", features = ["wasm-bindgen"] }

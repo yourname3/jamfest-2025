@@ -1,0 +1,62 @@
+<meta charset="utf-8">
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>Demo</title>
+		<style>
+			html, body {
+				margin: 0px;
+				padding: 0px;
+				width: 100%;
+				height: 100%;
+				
+				font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+			}
+
+			canvas.game {
+				border: 0px none;
+				background-color: black;
+				display: block;
+
+				position: absolute;
+
+				width: 100%;
+				height: 100%;
+			}
+			
+			#loading-tmp {
+				width: 100%;
+				height: 100%;
+				z-index: 10;
+				background-color: #000;
+				position: absolute;
+				display: flex;
+				justify-content: center;
+			}
+			
+			.loading-text {
+				display: flex;
+				align-items: center;
+				color: #eee;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="loading-tmp">
+			<p class="loading-text">loading...</p>
+		</div>
+	<div class="container" id="container">
+		<canvas class="game" id="canvas" oncontextmenu="event.preventDefault()" tabindex=-1></canvas>
+	</div>
+		<script type='module'>
+			import init from "./ponygame-demo/pkg/ponygame_demo.js";
+
+			var loadingTmp = document.getElementById("loading-tmp");
+			var container = document.getElementById("container");
+		
+			init().then(() => {
+				// Note: apparently this is never called, so...
+				// console.log("game loaded!");
+				// loadingTmp.remove();
+			})
+		</script>
+	</body>
+</html>

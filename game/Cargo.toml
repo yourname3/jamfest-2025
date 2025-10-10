@@ -1,0 +1,30 @@
+[package]
+name = "game"
+version = "0.1.0"
+edition = "2024"
+
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = ["-Oz",
+    "--enable-mutable-globals",
+    "--enable-bulk-memory",
+    "--enable-nontrapping-float-to-int",
+    "--enable-threads",
+    "--enable-sign-ext",
+    "--enable-tail-call",
+    "--enable-multivalue",
+    "--enable-memory64",
+    "--enable-extended-const"
+]
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[[bin]]
+name = "game"
+path = "src/main.rs"
+
+[dependencies]
+ponygame = { version = "0.1.0", path = "../ponygame" }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = "0.2"
