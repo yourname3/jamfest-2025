@@ -13,7 +13,7 @@ struct Assets {
 
     node_mix: Gp<Mesh>,
     
-    nodes_material: Gp<PBRMaterial>,
+    node_mix_mat: Gp<PBRMaterial>,
 
     sfx0: Sound,
 }
@@ -60,11 +60,11 @@ impl Assets {
             }),
 
             node_mix: mesh!(ctx, "./assets/mix_node.glb"),
-            nodes_material: Gp::new(PBRMaterial {
-                albedo: vec3(0.6, 0.6, 0.6),
+            node_mix_mat: Gp::new(PBRMaterial {
                 metallic: 1.0,
                 roughness: 0.0,
                 reflectance: 0.5,
+                albedo_texture: texture_srgb!(ctx, "./assets/label_mix.png"),
                 ..PBRMaterial::default(ctx)
             }),
 
@@ -75,7 +75,7 @@ impl Assets {
     fn node_mix(&self, ctx: &RenderCtx, transform: cgmath::Matrix4<f32>) -> Gp<MeshInstance> {
         Gp::new(MeshInstance::new(ctx,
             self.node_mix.clone(),
-            self.nodes_material.clone(),
+            self.node_mix_mat.clone(),
             transform))
     }
 }
@@ -100,7 +100,7 @@ impl ponygame::Gameplay for GameplayLogic {
         // let transform1 = cgmath::Matrix4::from_translation(vec3( 0.5, 0.0, 0.0));
 
         engine.main_world.set_envmap(&Gp::new(Texture::from_bytes_rgba16unorm(ctx,
-            include_bytes!("./assets/preller_drive_1k.exr"),
+            include_bytes!("./assets/horn-koppe_spring_1k.exr"),
             Some("horn-koppe_spring_1k.exr"),
             true).unwrap()));
 
