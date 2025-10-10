@@ -30,6 +30,12 @@ macro_rules! texture_srgb {
     }
 }
 
+macro_rules! texture_linear {
+    ($ctx:expr, $path:expr) => {
+        Texture::from_bytes_rgba8linear($ctx, include_bytes!($path), Some($path), false).unwrap()
+    }
+}
+
 macro_rules! texture_dummy {
     ($ctx:expr) => {
         Texture::dummy($ctx, Some("texture_dummy"))
@@ -60,10 +66,11 @@ impl Assets {
             node_mix: mesh!(ctx, "./assets/mix_node.glb"),
             node_mix_mat: Gp::new(PBRMaterial {
                 metallic: 1.0,
-                roughness: 0.0,
+                roughness: 1.0,
                 reflectance: 0.5,
-                albedo_texture: texture_srgb!(ctx, "./assets/label_mix.png"),
-                albedo_decal_texture: texture_dummy!(ctx),
+                albedo_texture: texture_srgb!(ctx, "./assets/mat/metal_046/albedo.png"),
+                metallic_roughness_texture: texture_linear!(ctx, "./assets/mat/metal_046/pbr.png"),
+                albedo_decal_texture: texture_srgb!(ctx, "./assets/label_mix.png"),
                 ..PBRMaterial::default(ctx)
             }),
 

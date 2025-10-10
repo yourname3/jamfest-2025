@@ -262,7 +262,7 @@ fn BRDF_envmap(bin_immut: BrdfIn) -> vec3f {
 
 @fragment
 fn pbr_main(in: VertexOutput) -> @location(0) vec4f {
-    let albedo_decal = textureSample(albedo_decal_t, pbr_s, in.uv);
+    let albedo_decal = textureSample(albedo_decal_t, pbr_s, in.uv2);
 
     var metallic = pbr.metallic;
     var perceptual_roughness = pbr.roughness;

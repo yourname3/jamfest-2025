@@ -54,6 +54,16 @@ impl Texture {
         Ok(Self::from_image_rgba8srgb(ctx, &img, label, generate_mipmaps))
     }
 
+    pub fn from_bytes_rgba8linear(
+        ctx: &RenderCtx,
+        bytes: &[u8],
+        label: Option<&str>,
+        generate_mipmaps: bool,
+    ) -> PonyResult<Self> {
+        let img = image::load_from_memory(bytes)?;
+        Ok(Self::from_image_rgba8linear(ctx, &img, label, generate_mipmaps))
+    }
+
     pub fn from_bytes_rgba16unorm(
         ctx: &RenderCtx,
         bytes: &[u8],
@@ -136,6 +146,22 @@ impl Texture {
             ctx,
             &image.to_rgba8(),
             wgpu::TextureFormat::Rgba8UnormSrgb,
+            4,
+            label,
+            generate_mipmaps
+        )
+    }
+
+    pub fn from_image_rgba8linear(
+        ctx: &RenderCtx,
+        image: &image::DynamicImage,
+        label: Option<&str>,
+        generate_mipmaps: bool,
+    ) -> Self {
+        Self::from_image_generic::<ImageBuffer<Rgba<u8>, Vec<u8>>>(
+            ctx,
+            &image.to_rgba8(),
+            wgpu::TextureFormat::Rgba8Unorm,
             4,
             label,
             generate_mipmaps
