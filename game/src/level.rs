@@ -85,6 +85,7 @@ pub struct Device {
 }
 gc!(Device, 0x00080000_u64);
 
+#[derive(Clone)]
 pub enum GridCell {
     /// The void: We can't actually place anything in the void.
     Void,
@@ -157,6 +158,7 @@ fn load_level(path: &'static str) -> tiled::Map {
 pub struct Level {
     pub floor_meshes: Vec<Gp<MeshInstance>>,
     pub grid: Grid<GridCell>,
+    pub floor_grid: Grid<GridCell>,
     pub lasers: Vec<Laser>,
     pub h_laser_ends: Grid<Option<LaserValue>>,
 }
@@ -249,6 +251,7 @@ impl Level {
             // Use column-major order so that when we iterate over 
             floor_meshes: Vec::new(),
             grid: Grid::new_with_order(map.height as usize, map.width as usize, grid::Order::ColumnMajor),
+            floor_grid: Grid::new_with_order(map.height as usize, map.width as usize, grid::Order::ColumnMajor),
             lasers: Vec::new(),
             h_laser_ends: Grid::new_with_order(map.height as usize, map.width as usize, grid::Order::ColumnMajor),
         };
@@ -286,6 +289,7 @@ impl Level {
                     // Objects are placeable on the floor
                     if matches!(tile.id(), FLOOR) {
                         *level.grid.get_mut(y as u32, x as u32).unwrap() = GridCell::Empty;
+                        *level.floor_grid.get_mut(y as u32, x as u32).unwrap() = GridCell::Empty;
                     }
                 }
             }
@@ -326,6 +330,16 @@ impl Level {
         // Safety: We've confirmed they're positive.
         log::info!("checking @ {},{} => {:?}", x, y, self.grid.get(y as usize, x as usize));
         return matches!(self.grid.get(y as usize, x as usize).unwrap(), GridCell::Empty);
+    }
+
+    pub fn is_psuedo_in_bounds_and_empty(&self, x: i32, y: i32) -> bool {
+        if x < 0 || y < 0 { return false; }
+        if x as usize >= self.grid.cols() { return false; }
+        if y as usize >= self.grid.rows() { return false; }
+
+        // Safety: We've confirmed they're positive.
+        log::info!("checking @ {},{} => {:?}", x, y, self.grid.get(y as usize, x as usize));
+        return matches!(self.grid.get(y as usize, x as usize).unwrap(), GridCell::Empty | GridCell::Void);
     }
 
     pub fn is_in_bounds(&self, x: i32, y: i32) -> bool {
@@ -376,6 +390,16 @@ impl Level {
         return true;
     }
 
+    pub fn may_psuedo_place_at(&mut self, x: i32, y: i32, ty: &DeviceTy) -> bool {
+        for cell in ty.get_cells() {
+            if !self.is_psuedo_in_bounds_and_empty(x + cell.0, y + cell.1) {
+                log::info!("failed due to {}, {} being {:?}",  x + cell.0, y + cell.1, self.grid.get(y + cell.1, x + cell.0));
+                return false;
+            }
+        }
+        return true;
+    }
+
     pub fn try_place(&mut self, x: i32, y: i32, ty: DeviceTy) {
         log::info!("try_place @ {},{}", x, y);
 
@@ -392,17 +416,38 @@ impl Level {
             let y = y + cell.1;
 
             assert!(self.is_in_bounds(x, y));
-            *self.grid.get_mut(y as usize, x as usize).unwrap() = GridCell::Empty;
+            *self.grid.get_mut(y as usize, x as usize).unwrap() = self.floor_grid.get(y as usize, x as usize).unwrap().clone();
         }
     }
 
-    pub fn move_from(&mut self, x: i32, y: i32, dev: &Gp<Device>, to_x: i32, to_y: i32) {
+    /// Returns whether this is a valid placement.
+    pub fn move_from(&mut self, x: i32, y: i32, dev: &Gp<Device>, to_x: i32, to_y: i32) -> bool {
         // Remove the device from its starting location and from wherever it is
         // currently located.
         self.clear_at(x, y, dev);
         self.clear_at(dev.x.get(), dev.y.get(), dev);
 
         if self.may_place_at(to_x, to_y, &dev.ty) {
+            self.force_place_existing(to_x, to_y, dev);
+            return true;
+        }
+        else if self.may_psuedo_place_at(to_x, to_y, &dev.ty) {
+            self.force_place_existing(to_x, to_y, dev);
+            return false;
+        }
+        else {
+            self.force_place_existing(x, y, dev);
+            return false;
+        }
+    }
+
+    /// Like move_from, but doesn't allow for psuedo placements.
+    pub fn finish_move_from(&mut self, x: i32, y: i32, dev: &Gp<Device>, to_x: i32, to_y: i32) {
+        self.clear_at(x, y, dev);
+        self.clear_at(dev.x.get(), dev.y.get(), dev);
+
+        if self.may_place_at(to_x, to_y, &dev.ty) {
+            log::info!("finish_move_from: valid placement!");
             self.force_place_existing(to_x, to_y, dev);
         }
         else {

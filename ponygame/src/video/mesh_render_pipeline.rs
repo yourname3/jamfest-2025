@@ -51,7 +51,7 @@ pub struct MeshInstance {
     mesh: Gp<Mesh>,
     pub material: Gp<PBRMaterial>,
 
-    pub modulate: cgmath::Vector4<f32>,
+    pub modulate: Cell<cgmath::Vector4<f32>>,
 
     pub transform: Cell<cgmath::Matrix4<f32>>,
 
@@ -86,7 +86,7 @@ impl MeshInstance {
             mesh,
             material,
 
-            modulate,
+            modulate: Cell::new(modulate),
 
             transform: Cell::new(transform),
 
@@ -101,7 +101,7 @@ impl MeshInstance {
     pub fn update(&self, ctx: &RenderCtx) {
         let uniform = MeshInstanceUniform {
             transform: self.transform.get().into(),
-            modulate: self.modulate.into(),
+            modulate: self.modulate.get().into(),
         };
         ctx.queue.write_buffer(&self.uniform_buffer.0, 0, bytemuck::cast_slice(&[uniform]));
     }

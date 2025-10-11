@@ -7,7 +7,7 @@ use inline_tweak::tweak;
 use ponygame::video::asset_import::import_mesh_set_as_gc;
 use ponygame::{game, gc};
 // /
-use ponygame::cgmath::{point3, vec3, Matrix4, SquareMatrix, Vector3, Zero};
+use ponygame::cgmath::{point3, vec3, vec4, Matrix4, SquareMatrix, Vector3, Zero};
 use ponygame::cgmath;
 use ponygame::log;
 
@@ -94,12 +94,16 @@ impl Selector {
         }
     }
 
-    pub fn push_mesh(&mut self, engine: &mut PonyGame) {
-        let transform = Matrix4::from_translation(vec3(self.x as f32, 0.0, self.y as f32));
-        let mesh_instance = match self.state {
+    fn get_current_mesh(&self) -> Option<&Gp<MeshInstance>> {
+        match self.state {
             SelectorState::None => None,
             SelectorState::Vert2 => Some(&self.mesh_vert_2),
-        };
+        }
+    }
+
+    pub fn push_mesh(&mut self, engine: &mut PonyGame) {
+        let transform = Matrix4::from_translation(vec3(self.x as f32, 0.0, self.y as f32));
+        let mesh_instance = self.get_current_mesh();
 
         if let Some(mesh_instance) = mesh_instance {
             mesh_instance.transform.set(transform);
@@ -126,10 +130,15 @@ impl Selector {
         self.x = intersect.x as i32;
         self.y = intersect.z as i32;
 
-        level.move_from(self.start_x, self.start_y, &dev, self.x, self.y);
+        let valid = level.move_from(self.start_x, self.start_y, &dev, self.x, self.y);
+        if let Some(mesh) = self.get_current_mesh() {
+            mesh.modulate.set(if valid { vec4(1.0, 1.0, 1.0, 1.0) } else { vec4(1.0, 0.0, 0.0, 1.0) });
+            mesh.update(engine.render_ctx());
+        }
 
         if !engine.get_main_window().left_mouse_down {
             self.is_moving = false;
+            level.finish_move_from(self.start_x, self.start_y, &dev, self.x, self.y);
         }
     }
 
@@ -143,7 +152,7 @@ impl Selector {
         let pos = engine.main_camera.convert_screen_to_normalized_device(engine.get_viewport(), pos);
         let vp = engine.main_camera.get_view_projection_matrix(engine.get_viewport());
 
-        log::info!("cursor pos @ {:?}", pos);
+        //log::info!("cursor pos @ {:?}", pos);
 
         //let Some(invert) = vp.invert() else { return; };
 
@@ -161,7 +170,7 @@ impl Selector {
                     let low_point = (vp * low_point.extend(1.0)).truncate().truncate();
                     let high_point = (vp * high_point.extend(1.0)).truncate().truncate();
 
-                    log::info!("candidate object @ {:?} -> {:?}", low_point, high_point);
+                    //log::info!("candidate object @ {:?} -> {:?}", low_point, high_point);
 
                     if pos.x < low_point.x || pos.x > high_point.x { continue; }
                     if pos.y < high_point.y || pos.y > low_point.y { continue; }
