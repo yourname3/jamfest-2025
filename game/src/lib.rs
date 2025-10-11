@@ -1,3 +1,4 @@
+use inline_tweak::Tweakable;
 use ponygame::game;
 // /
 use ponygame::cgmath::{point3, vec3, Matrix4, SquareMatrix};
@@ -68,6 +69,7 @@ impl Assets {
                 metallic: 1.0,
                 roughness: 1.0,
                 reflectance: 0.5,
+                //albedo: vec3(0.5, 0.5, 0.5),
                 albedo_texture: texture_srgb!(ctx, "./assets/mat/metal_046/albedo.png"),
                 metallic_roughness_texture: texture_linear!(ctx, "./assets/mat/metal_046/pbr.png"),
                 albedo_decal_texture: texture_srgb!(ctx, "./assets/label_mix.png"),
@@ -95,6 +97,25 @@ pub struct GameplayLogic {
 
 // meow
 
+macro_rules! tweak_vec3 {
+    ($x:expr, $y:expr, $z:expr) => {
+        vec3(inline_tweak::tweak!($x), inline_tweak::tweak!($y), inline_tweak::tweak!($z))
+    };
+}
+
+impl GameplayLogic {
+    pub fn tweak_scene(&mut self, engine: &mut PonyGame) {
+        engine.main_world.lights[0].color.set(
+            //tweak_vec3!(40.0, 1.0, 1.0)
+            vec3(
+                inline_tweak::tweak!(5.0),
+                inline_tweak::tweak!(5.0),
+                inline_tweak::tweak!(5.0)
+            )
+        );
+    }
+}
+
 impl ponygame::Gameplay for GameplayLogic {
     const GAME_TITLE: &'static str = "JamFest";
 
@@ -107,6 +128,7 @@ impl ponygame::Gameplay for GameplayLogic {
 
         engine.main_world.set_envmap(&Gp::new(Texture::from_bytes_rgba16unorm(ctx,
             include_bytes!("./assets/horn-koppe_spring_1k.exr"),
+            //include_bytes!("./assets/preller_drive_1k.exr"),
             Some("horn-koppe_spring_1k.exr"),
             true).unwrap()));
 
@@ -129,6 +151,9 @@ impl ponygame::Gameplay for GameplayLogic {
         let ctx = engine.render_ctx();
 
         self.theta += 0.1;
+        self.tweak_scene(engine);
+
+        log::info!("{} {:?} {:?}", std::file!(), std::fs::File::open(std::file!()), std::env::current_dir());
 
         //let offset = vec3(0.3 * f32::cos(self.theta), 0.0, 0.3 * f32::sin(self.theta));
 

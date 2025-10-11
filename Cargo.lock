@@ -816,6 +816,7 @@ checksum = "aa9a19cbb55df58761df49b23516a86d432839add4af60fc256da840f66ed35b"
 name = "game"
 version = "0.1.0"
 dependencies = [
+ "inline_tweak",
  "ponygame",
  "wasm-bindgen",
 ]
@@ -1047,6 +1048,26 @@ name = "inflections"
 version = "1.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a257582fdcde896fd96463bf2d40eefea0580021c0712a0e2b028b60b47a837a"
+
+[[package]]
+name = "inline_tweak"
+version = "1.2.2"
+dependencies = [
+ "inline_tweak_derive",
+ "proc-macro2",
+ "syn",
+]
+
+[[package]]
+name = "inline_tweak_derive"
+version = "4.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6864ad6962b49a8fc7ce8cfa60ee0725aa543f15fc7e5f34753ccfa881dd6759"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
 
 [[package]]
 name = "is_terminal_polyfill"

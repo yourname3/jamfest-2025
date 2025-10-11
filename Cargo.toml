@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = [ "ponygame", "game" ]
+members = [ "ponygame", "game", "inline_tweak" ]
 
 [profile.release]
 strip = true

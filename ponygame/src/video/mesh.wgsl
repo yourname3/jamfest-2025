@@ -272,7 +272,7 @@ fn pbr_main(in: VertexOutput) -> @location(0) vec4f {
         var data = textureSample(metallic_rough_t, pbr_s, in.uv);
         
         if albedo_decal.a > 0 {
-            let data2 = textureSample(metallic_rough_decal_t, pbr_s, in.uv);
+            let data2 = textureSample(metallic_rough_decal_t, pbr_s, in.uv2);
             data = mix(data, data2, albedo_decal.a);
         }
         // Compute based on textures

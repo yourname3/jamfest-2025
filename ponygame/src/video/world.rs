@@ -5,8 +5,8 @@ use bytemuck::Zeroable;
 use crate::{gc::Gp, video::{camera::Camera, hdr_tonemap::HdrTonemapPipeline, mesh_render_pipeline::MeshInstance, texture::{DepthTexture, Texture}, RenderCtx, Renderer, UniformBuffer}};
 
 pub struct Light3D {
-    direction: cgmath::Vector3<f32>,
-    color: cgmath::Vector3<f32>,
+    pub direction: Cell<cgmath::Vector3<f32>>,
+    pub color: Cell<cgmath::Vector3<f32>>,
 }
 
 #[repr(C)]
@@ -21,9 +21,9 @@ struct Light3DUniform {
 impl Light3D {
     pub fn to_uniform(&self) -> Light3DUniform {
         Light3DUniform {
-            direction: self.direction.into(),
+            direction: self.direction.get().into(),
             _pad: 0,
-            color: self.color.into(),
+            color: self.color.get().into(),
             _pad2: 0,
         }
     }
@@ -45,7 +45,7 @@ impl Light3D {
 pub struct World {
     envmap: Gp<Texture>,
 
-    lights: [Light3D; 1],
+    pub lights: [Light3D; 1],
 
     meshes: RefCell<Vec<Gp<MeshInstance>>>,
 }
@@ -55,8 +55,8 @@ impl World {
         let envmap = Gp::new(Texture::dummy(ctx, Some("World::envmap (null)")));
 
         let lights = [Light3D {
-            color: cgmath::vec3(8.0, 8.0, 8.0),
-            direction: cgmath::vec3(2.0, -10.0, -10.0),
+            color: Cell::new(cgmath::vec3(0.0, 0.0, 0.0)),
+            direction: Cell::new(cgmath::vec3(2.0, -10.0, -10.0)),
         }];
 
         Self {
@@ -83,11 +83,11 @@ impl World {
         let view_mat = camera.get_view_matrix();
 
         for (idx, light) in self.lights.iter().enumerate() {
-            let direction = view_mat * light.direction.extend(0.0);
+            let direction = view_mat * light.direction.get().extend(0.0);
             data[idx] = Light3DUniform {
                 direction: direction.truncate().into(),
                 _pad: 0,
-                color: light.color.into(),
+                color: light.color.get().into(),
                 _pad2: 0
             };
         }
