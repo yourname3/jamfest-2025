@@ -96,6 +96,45 @@ impl Selector {
             engine.main_world.push_mesh(mesh_instance.clone());
         }
     }
+
+    pub fn update(&mut self, engine: &mut PonyGame, level: &Level) {
+        let pos = engine.get_cursor_position();
+        let pos = engine.main_camera.convert_cursor_pos(engine.get_viewport(), pos);
+        let vp = engine.main_camera.get_view_projection_matrix(engine.get_viewport());
+
+        log::info!("cursor pos @ {:?}", pos);
+
+        //let Some(invert) = vp.invert() else { return; };
+
+        self.state = SelectorState::None;
+
+        for x in 0..level.grid.cols() {
+            for y in 0..level.grid.rows() {
+                let cell = level.grid.get(y, x).unwrap();
+                if let GridCell::DeviceRoot(dev) = cell {
+                    let bounds = dev.ty.get_bounds();
+                    let low_point = vec3(x as f32, 0.0, y as f32);
+                    let high_point = vec3(low_point.x + bounds.0 as f32, 0.0, low_point.z + bounds.1 as f32);
+
+                    let low_point = (vp * low_point.extend(1.0)).truncate().truncate();
+                    let high_point = (vp * high_point.extend(1.0)).truncate().truncate();
+
+                    log::info!("candidate object @ {:?} -> {:?}", low_point, high_point);
+
+                    if pos.x < low_point.x || pos.x > high_point.x { continue; }
+                    if pos.y < high_point.y || pos.y > low_point.y { continue; }
+
+                    // Cursor should be overlapping..
+                    self.state = dev.ty.get_selector();
+                    // If the object was not selectable, keep looking.
+                    if matches!(self.state, SelectorState::None) { continue; }
+                    self.x = x as i32;
+                    self.y = y as i32;
+                    return;
+                }
+            }
+        }
+    }
 }
 
 macro_rules! mesh {
@@ -312,6 +351,8 @@ impl ponygame::Gameplay for GameplayLogic {
         self.tweak_scene(engine);
 
         self.level.build_lasers();
+
+        self.selector.update(engine, &self.level);
 
         engine.main_world.clear_meshes();
         self.level.build_meshes(engine, &self.assets);

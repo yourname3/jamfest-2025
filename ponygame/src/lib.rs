@@ -1,9 +1,10 @@
+use cgmath::Vector2;
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
 
 use winit::{application::ApplicationHandler, event::WindowEvent, event_loop::{ActiveEventLoop, ControlFlow, EventLoop, EventLoopProxy}};
 
-use crate::{gc::Gp, video::{camera::Camera, world::World, RenderCtx, Video}};
+use crate::{gc::Gp, video::{camera::Camera, world::{Viewport, World}, RenderCtx, Video}};
 
 pub mod audio;
 pub mod error;
@@ -43,6 +44,15 @@ struct PonyGameApp<G: Gameplay> {
 }
 
 impl PonyGame {
+    pub fn get_cursor_position(&self) -> Vector2<f32> {
+        // TODO: Don't use unwrap...
+        self.video.id_map.iter().next().unwrap().1.cursor_position
+    }
+
+    pub fn get_viewport(&self) -> &Viewport {
+        &self.video.id_map.iter().next().unwrap().1.renderer.viewport
+    }
+
     pub fn render_ctx(&self) -> &RenderCtx {
         &self.video.renderer.ctx
     }

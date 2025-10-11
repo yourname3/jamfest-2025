@@ -13,7 +13,7 @@ use ponygame::video::{PBRShader, RenderCtx};
 use ponygame::{audio::Sound, gc::{Gp, GpMaybe}, video::{asset_import::import_binary_data, mesh_render_pipeline::{Mesh, MeshInstance}, texture::Texture, PBRMaterial}, PonyGame};
 use tiled::{LayerTile, Loader, PropertyValue, ResourceReader};
 
-use crate::Assets;
+use crate::{Assets, SelectorState};
 
 #[derive(Clone, Debug)]
 pub enum DeviceTy {
@@ -26,6 +26,21 @@ impl DeviceTy {
         match self {
             DeviceTy::Mix => &[(0, 0), (0, 1)],
             DeviceTy::Emitter(_) => &[(0, 0)],
+        }
+    }
+
+    pub fn get_bounds(&self) -> (i32, i32) {
+        match self {
+            DeviceTy::Mix => (1, 2),
+            DeviceTy::Emitter(_) => (1, 1)
+        }
+    }
+
+    pub fn get_selector(&self) -> SelectorState {
+        match self {
+            DeviceTy::Mix => SelectorState::Vert2,
+            // Not selectable
+            DeviceTy::Emitter(_) => SelectorState::None,
         }
     }
 

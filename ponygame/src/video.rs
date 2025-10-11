@@ -7,7 +7,7 @@ pub mod camera;
 pub mod world;
 
 use std::{cell::{Cell, RefCell}, collections::HashMap, mem::MaybeUninit, rc::Rc};
-use cgmath::vec3;
+use cgmath::{vec3, Vector2, Zero};
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 
 use wgpu::util::DeviceExt;
@@ -172,12 +172,12 @@ pub struct Renderer {
     pub sky: SkyPipeline,
 }
 
-struct PerWindowRenderer {
+pub struct PerWindowRenderer {
     surface: wgpu::Surface<'static>,
     config: wgpu::SurfaceConfiguration,
     is_surface_configured: bool,
 
-    viewport: Viewport,
+    pub viewport: Viewport,
 }
 
 struct Samplers {
@@ -640,9 +640,11 @@ impl Renderer {
 
 // For now, this is private, because we can't really let stuff look at it.
 // Could wrap it as a private member of a public struct.
-struct Window {
+pub struct Window {
     sdl: winit::window::Window,
-    renderer: PerWindowRenderer,
+    pub renderer: PerWindowRenderer,
+
+    pub cursor_position: Vector2<f32>,
 }
 
 pub struct Video {
@@ -650,7 +652,7 @@ pub struct Video {
     pub renderer: Renderer,
 
     // TODO: GC integration..?
-    id_map: HashMap<WindowId, Window>,
+    pub id_map: HashMap<WindowId, Window>,
 }
 
 impl Video {
@@ -669,7 +671,8 @@ impl Video {
         let id = underlying_window.id();
         let window = Window {
             sdl: underlying_window,
-            renderer: per
+            renderer: per,
+            cursor_position: Vector2::zero()
         };
         id_map.insert(id, window);
 
@@ -789,7 +792,11 @@ impl Video {
                 // in a DestroyWindow operation.
                 self.id_map.remove(&window_id);
                 return self.id_map.is_empty();
-            }
+            },
+            WindowEvent::CursorMoved { device_id, position } => {
+                window.cursor_position.x = position.x as f32;
+                window.cursor_position.y = position.y as f32;
+            },
             _ => {}
         }
 

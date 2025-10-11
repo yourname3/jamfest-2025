@@ -1,6 +1,6 @@
 use std::cell::Cell;
 
-use cgmath::SquareMatrix;
+use cgmath::{vec2, Matrix4, SquareMatrix, Vector2};
 
 use crate::video::{texture::Texture, world::{Viewport, ViewportUniform}, RenderCtx, UniformBuffer};
 
@@ -43,6 +43,38 @@ impl Camera {
                 zfar: 100.0,
             }),
         }
+    }
+
+    pub fn convert_cursor_pos(&self, viewport: &Viewport, cursor_pos: Vector2<f32>) -> Vector2<f32> {
+        match self.projection.get() {
+            CameraProjection::Perspective { fovy, znear, zfar } => todo!("uhhhhhh"),
+            CameraProjection::Orthographic { zoom } => {
+                //let cursor_pos = (cursor_pos - vec2(viewport.width as f32 * 0.5, viewport.height as f32 * 0.5));
+
+                //return (cursor_pos * zoom) / (viewport.height as f32 * 2.0);
+
+                let normalized = vec2(
+                    cursor_pos.x / (0.5 * viewport.width as f32),
+                    cursor_pos.y / (-0.5 * viewport.height as f32),
+                ) + vec2(-1.0, 1.0);
+                return normalized;
+
+                //let proj = self.get_projection_matrix(viewport);
+                //let proj = proj * Matrix4::from_scale(1.0 / viewport.width as f32);
+                //let invert = proj.invert().unwrap();
+                //(proj * cursor_pos.extend(0.0).extend(1.0)).truncate().truncate()
+            },
+        }
+    }
+
+    pub fn get_view_projection_matrix(&self, viewport: &Viewport) -> cgmath::Matrix4<f32> {
+        let view = cgmath::Matrix4::look_at_rh(self.position.get(), self.target.get(), self.up);
+
+        let proj = self.get_projection_matrix(viewport);        
+
+        let vp = OPENGL_TO_WGPU_MATRIX * proj * view;
+
+        vp
     }
 
     // TODO: We really should cache this...
