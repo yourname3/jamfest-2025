@@ -4,6 +4,7 @@ mod level;
 
 use grid::Grid;
 use inline_tweak::tweak;
+use ponygame::video::asset_import::import_mesh_set_as_gc;
 use ponygame::{game, gc};
 // /
 use ponygame::cgmath::{point3, vec3, Matrix4, SquareMatrix, Vector3};
@@ -36,7 +37,14 @@ struct Assets {
     floor_tile: Gp<Mesh>,
     floor_tile_mat: Gp<PBRMaterial>,
 
-    wall_side: Gp<Mesh>,
+    wall_tl: Gp<Mesh>,
+    wall_t: Gp<Mesh>,
+    wall_tr: Gp<Mesh>,
+    wall_l: Gp<Mesh>,
+    wall_r: Gp<Mesh>,
+    wall_bl: Gp<Mesh>,
+    wall_b: Gp<Mesh>,
+    wall_br: Gp<Mesh>,
     wall_mat: Gp<PBRMaterial>,
 
     sfx0: Sound,
@@ -124,6 +132,21 @@ impl Assets {
         let metal_046_a = texture_linear!(ctx, "./assets/mat/metal_046/albedo.png");
         let metal_046_m = texture_linear!(ctx, "./assets/mat/metal_046/pbr.png");
 
+        let [
+            wall_tl, wall_t, wall_tr,
+            wall_l, wall_r,
+            wall_bl, wall_b, wall_br
+        ] = import_mesh_set_as_gc(engine, include_bytes!("./assets/walls.glb"), &[
+            "wall-tl",
+            "wall-t",
+            "wall-tr",
+            "wall-l",
+            "wall-r",
+            "wall-bl",
+            "wall-b",
+            "wall-br"
+        ]).unwrap();
+
         Assets {
             horse_mesh: mesh!(ctx, "../test/horse.glb"),
             horse_material: Gp::new(PBRMaterial {
@@ -168,7 +191,14 @@ impl Assets {
                 ..PBRMaterial::default(ctx)
             }),
 
-            wall_side: mesh!(ctx, "./assets/wall/wall_side.glb"),
+            wall_tl,
+            wall_t,
+            wall_tr,
+            wall_l,
+            wall_r,
+            wall_bl,
+            wall_b,
+            wall_br,
             wall_mat: Gp::new(PBRMaterial {
                 albedo_texture: metal_046_a.clone(),
                 metallic_roughness_texture: metal_046_m.clone(),

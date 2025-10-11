@@ -4,7 +4,7 @@ use asset_importer_rs_gltf::Gltf2Importer;
 use asset_importer_rs_core::{AiImporter, AiImporterExt};
 use asset_importer_rs_scene::AiMesh;
 
-use crate::video::mesh_render_pipeline::Vertex;
+use crate::{gc::Gp, video::mesh_render_pipeline::{Mesh, Vertex}, PonyGame};
 
 // How should meshs work?
 // 
@@ -20,6 +20,12 @@ use crate::video::mesh_render_pipeline::Vertex;
 pub struct MeshData {
     pub vertex_data: Vec<Vertex>,
     pub index_data: Vec<u32>,
+}
+
+impl MeshData {
+    pub fn empty() -> Self {
+        MeshData { vertex_data: Vec::new(), index_data: Vec::new() }
+    }
 }
 
 fn conv_vec3(vec3: asset_importer_rs_scene::AiVector3D) -> [f32; 3] {
@@ -82,10 +88,56 @@ pub fn import_binary_data(data: &[u8]) -> Option<MeshData> {
     // It would be good to figure out the equivalent in the new library.
 
     for mesh in &scene.meshes {
+        log::info!("import: mesh = {}", mesh.name);
         let mesh = Some(import_mesh(mesh));
         log::info!("finish asset import");
         return mesh;
     }
 
     None
+}
+
+pub fn import_mesh_set<const N: usize>(data: &[u8], mesh_names: &[&str; N]) -> Option<[MeshData; N]> {
+    let mut imported = core::array::from_fn::<_, N, _>(|_| MeshData::empty());
+
+    let importer = Gltf2Importer::new();
+    let scene = importer.read_file(Path::new("builtin.gltf"), |path| {
+        Ok(Cursor::new(data))
+    }).unwrap();
+
+    let mut missing = N;
+
+    log::info!("import: mesh count = {}", scene.meshes.len());
+
+    for mesh in &scene.meshes {
+        log::info!("import: considering {}", mesh.name);
+
+        let idx = mesh_names.iter().position(|x| **x == mesh.name);
+        let Some(idx) = idx else { continue; };
+
+        log::info!("import: mesh = {} @ {}", mesh.name, idx);
+        let mesh = import_mesh(mesh);
+        
+        imported[idx] = mesh;
+        // TODO: This will be wrong if there is more than one mesh in the glb
+        // that has the same name.
+        missing -= 1;
+    }
+
+    if missing == 0 {
+        return Some(imported);
+    }
+    None
+}
+
+pub fn import_mesh_set_as_gc<const N: usize>(engine: &PonyGame, data: &[u8], mesh_names: &[&str; N]) -> Option<[Gp<Mesh>; N]> {
+    if let Some(meshes) = import_mesh_set(data, mesh_names) {
+        let ready = core::array::from_fn(|idx| {
+            Gp::new(Mesh::new(engine.render_ctx(), &meshes[idx]))
+        });
+        Some(ready)
+    }
+    else {
+        None
+    }
 }

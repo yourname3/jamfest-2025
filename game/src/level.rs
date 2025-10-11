@@ -122,25 +122,25 @@ pub struct Level {
 }
 
 impl Level {
-    /// Shouldl be called once, to instantiate all the floor meshes.
-    fn build_floor_meshes(&mut self, engine: &PonyGame, assets: &Assets) {
-        // For now, just put one every spot on the grid...?
-        for ((y, x), cell) in self.grid.indexed_iter() {
-            let (mesh, mat) = match cell {
-                GridCell::Wall => (&assets.wall_side, &assets.wall_mat),
-                _ => (&assets.floor_tile, &assets.floor_tile_mat)
-            };
+    // /// Shouldl be called once, to instantiate all the floor meshes.
+    // fn build_floor_meshes(&mut self, engine: &PonyGame, assets: &Assets) {
+    //     // For now, just put one every spot on the grid...?
+    //     for ((y, x), cell) in self.grid.indexed_iter() {
+    //         let (mesh, mat) = match cell {
+    //             GridCell::Wall => (&assets.wall_, &assets.wall_mat),
+    //             _ => (&assets.floor_tile, &assets.floor_tile_mat)
+    //         };
 
-            let instance = Gp::new(MeshInstance::new(
-                engine.render_ctx(),
-                mesh.clone(),
-                mat.clone(),
-                Matrix4::from_translation(vec3(x as f32, 0.0, y as f32))
-            ));
-            //log::info!("instantiate floor mesh @ {},{}", x, y);
-            self.floor_meshes.push(instance);
-        }
-    }
+    //         let instance = Gp::new(MeshInstance::new(
+    //             engine.render_ctx(),
+    //             mesh.clone(),
+    //             mat.clone(),
+    //             Matrix4::from_translation(vec3(x as f32, 0.0, y as f32))
+    //         ));
+    //         //log::info!("instantiate floor mesh @ {},{}", x, y);
+    //         self.floor_meshes.push(instance);
+    //     }
+    // }
 
     fn build_debug_border(&mut self) {
         for cell in self.grid.iter_row_mut(0) {
@@ -158,20 +158,20 @@ impl Level {
         }
     }
 
-    pub fn new(width: usize, height: usize, engine: &PonyGame, assets: &Assets) -> Level {
-        let mut level = Level {
-            // Use column-major order so that when we iterate over 
-            floor_meshes: Vec::new(),
-            grid: Grid::new_with_order(height, width, grid::Order::ColumnMajor),
-            lasers: Vec::new(),
-            h_laser_ends: Grid::new_with_order(height, width, grid::Order::ColumnMajor),
-        };
+    // pub fn new(width: usize, height: usize, engine: &PonyGame, assets: &Assets) -> Level {
+    //     let mut level = Level {
+    //         // Use column-major order so that when we iterate over 
+    //         floor_meshes: Vec::new(),
+    //         grid: Grid::new_with_order(height, width, grid::Order::ColumnMajor),
+    //         lasers: Vec::new(),
+    //         h_laser_ends: Grid::new_with_order(height, width, grid::Order::ColumnMajor),
+    //     };
 
-        level.build_debug_border();
-        level.build_floor_meshes(engine, assets);
+    //     level.build_debug_border();
+    //     level.build_floor_meshes(engine, assets);
 
-        level
-    }
+    //     level
+    // }
 
     pub fn spawn_static_tile(&mut self, engine: &PonyGame, mesh: &Gp<Mesh>, mat: &Gp<PBRMaterial>, x: i32, y: i32) {
         let instance = Gp::new(MeshInstance::new(
@@ -213,7 +213,15 @@ impl Level {
             for y in 0..height {
                 if let Some(tile) = floors.get_tile(x as i32, y as i32) {
                     let mesh_mat = match tile.id() {
-                        WALL_T => Some((&assets.wall_side, &assets.wall_mat)),
+                        WALL_TL => Some((&assets.wall_tl, &assets.wall_mat)),
+                        WALL_T  => Some((&assets.wall_t , &assets.wall_mat)),
+                        WALL_TR => Some((&assets.wall_tr, &assets.wall_mat)),
+                        WALL_L  => Some((&assets.wall_l , &assets.wall_mat)),
+
+                        WALL_R  => Some((&assets.wall_r , &assets.wall_mat)),
+                        WALL_BL => Some((&assets.wall_bl, &assets.wall_mat)),
+                        WALL_B  => Some((&assets.wall_b, &assets.wall_mat)),
+                        WALL_BR => Some((&assets.wall_br, &assets.wall_mat)),
 
                         FLOOR  => Some((&assets.floor_tile, &assets.floor_tile_mat)),
                         _ => None,
