@@ -1,7 +1,8 @@
 use std::f32::consts::PI;
 
+use grid::Grid;
 use inline_tweak::tweak;
-use ponygame::game;
+use ponygame::{game, gc};
 // /
 use ponygame::cgmath::{point3, vec3, Matrix4, SquareMatrix};
 use ponygame::cgmath;
@@ -23,6 +24,104 @@ struct Assets {
     laser_mat: Gp<PBRMaterial>,
 
     sfx0: Sound,
+}
+
+#[derive(Clone, Copy, Debug)]
+enum DeviceTy {
+    Mix,
+}
+
+impl DeviceTy {
+    pub fn get_cells(&self) -> &'static [(i32, i32)] {
+        match self {
+            DeviceTy::Mix => &[(0, 0), (0, 1)],
+        }
+    }
+
+    pub fn mk_mesh_instance(&self, engine: &PonyGame, assets: &Assets, transform: cgmath::Matrix4<f32>) -> Gp<MeshInstance> {
+        let (mesh, mat) = match self {
+            DeviceTy::Mix => (&assets.node_mix, &assets.node_mix_mat),
+        };
+        Gp::new(MeshInstance::new(
+            engine.render_ctx(),
+            mesh.clone(),
+            mat.clone(),
+            transform
+        ))
+    }
+}
+
+struct Device {
+    x: i32,
+    y: i32,
+    ty: DeviceTy,
+}
+gc!(Device, 0x00080000_u64);
+
+enum GridCell {
+    Empty,
+    DeviceRoot(Gp<Device>),
+    DeviceEtc(Gp<Device>),
+}
+
+impl Default for GridCell {
+    fn default() -> Self {
+        GridCell::Empty
+    }
+}
+
+struct Level {
+    grid: Grid<GridCell>,
+}
+
+impl Level {
+    pub fn new(width: usize, height: usize) -> Level {
+        Level {
+            grid: Grid::new(height, width)
+        }
+    }
+
+    pub fn is_in_bounds_and_empty(&self, x: i32, y: i32) -> bool {
+        if x < 0 || y < 0 { return false; }
+        if x as usize >= self.grid.cols() { return false; }
+        if y as usize >= self.grid.rows() { return false; }
+
+        // Safety: We've confirmed they're positive.
+        return matches!(self.grid.get(x as usize, y as usize).unwrap(), GridCell::Empty);
+    }
+
+    pub fn try_place(&mut self, x: i32, y: i32, ty: DeviceTy) {
+        for cell in ty.get_cells() {
+            if !self.is_in_bounds_and_empty(x + cell.0, y + cell.1) {
+                return;
+            }
+        }
+
+        let device = Gp::new(Device {
+            x, y, ty
+        });
+
+        log::info!("placed {:?} @ {},{}", ty, x, y);
+
+        for cell in ty.get_cells() {
+            *self.grid.get_mut((x + cell.0) as usize, (y + cell.1) as usize).unwrap() = 
+                if matches!(cell, (0, 0)) { GridCell::DeviceRoot(device.clone()) } 
+                else { GridCell::DeviceEtc(device.clone()) };
+        }
+    }
+
+    pub fn build_meshes(&mut self, engine: &mut PonyGame, assets: &Assets) {
+        for ((x, y), cell) in self.grid.indexed_iter() {
+            log::info!("cell @ {},{} => {:?}", x, y, std::mem::discriminant(cell));
+            match cell {
+                GridCell::DeviceRoot(device) => {
+                    engine.main_world.push_mesh(device.ty.mk_mesh_instance(engine, assets, 
+                        Matrix4::from_translation(vec3(x as f32, 0.0, y as f32))))
+                },
+                _ => {}
+            }
+        }
+    }
 }
 
 macro_rules! mesh {
@@ -112,6 +211,7 @@ pub struct GameplayLogic {
     theta: f32,
 
     assets: Assets,
+    level: Level,
 }
 
 // meow
@@ -145,27 +245,20 @@ impl ponygame::Gameplay for GameplayLogic {
             Some("horn-koppe_spring_1k.exr"),
             true).unwrap()));
 
-        for i in 0..5 {
-            engine.main_world.push_mesh(assets.node_mix(ctx,
-                Matrix4::from_translation(vec3(0.0, 0.0, i as f32 * 2.0)
-            )));
-
-            engine.main_world.push_mesh(assets.laser(ctx,
-            Matrix4::from_translation(vec3(0.5, 0.3, -0.5 + i as f32 * 2.0))
-                * Matrix4::from_angle_y(cgmath::Rad(PI))
-                * Matrix4::from_nonuniform_scale(10.0, 1.0, 1.0)
-            ));
-        }
-
         engine.main_camera.position.set(point3(0.0, 15.0, 3.0));
         engine.main_camera.target.set(point3(0.0, 0.0, 0.0));
         engine.main_camera.projection.set(CameraProjection::Orthographic {
             zoom: 10.0,
         });
 
+        let mut level = Level::new(40, 40);
+        level.try_place(0, 0, DeviceTy::Mix);
+        level.try_place(1, 1, DeviceTy::Mix);
+
         GameplayLogic {
             assets,
             theta: 0.0,
+            level,
         }
     }
 
@@ -174,6 +267,9 @@ impl ponygame::Gameplay for GameplayLogic {
 
         self.theta += 0.1;
         self.tweak_scene(engine);
+
+        engine.main_world.clear_meshes();
+        self.level.build_meshes(engine, &self.assets);
 
         //let offset = vec3(0.3 * f32::cos(self.theta), 0.0, 0.3 * f32::sin(self.theta));
 

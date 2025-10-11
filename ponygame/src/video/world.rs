@@ -72,6 +72,11 @@ impl World {
         meshes.push(instance);
     }
 
+    pub fn clear_meshes(&self) {
+        let mut meshes = self.meshes.borrow_mut();
+        meshes.clear();
+    }
+
     pub fn set_envmap(&self, texture: &Gp<Texture>) {
         self.envmap.set(texture);
     }

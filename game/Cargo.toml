@@ -24,6 +24,7 @@ name = "game"
 path = "src/main.rs"
 
 [dependencies]
+grid = "1.0.0"
 inline_tweak = { path = "../inline_tweak", features = ["derive"] }
 ponygame = { version = "0.1.0", path = "../ponygame" }
 
