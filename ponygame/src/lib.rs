@@ -4,7 +4,7 @@ use wasm_bindgen::prelude::*;
 
 use winit::{application::ApplicationHandler, event::WindowEvent, event_loop::{ActiveEventLoop, ControlFlow, EventLoop, EventLoopProxy}};
 
-use crate::{gc::Gp, video::{camera::Camera, world::{Viewport, World}, RenderCtx, Video}};
+use crate::{gc::Gp, video::{camera::Camera, world::{Viewport, World}, RenderCtx, Video, Window}};
 
 pub mod audio;
 pub mod error;
@@ -47,6 +47,10 @@ impl PonyGame {
     pub fn get_cursor_position(&self) -> Vector2<f32> {
         // TODO: Don't use unwrap...
         self.video.id_map.iter().next().unwrap().1.cursor_position
+    }
+
+    pub fn get_main_window(&self) -> &Window {
+        self.video.id_map.iter().next().unwrap().1
     }
 
     pub fn get_viewport(&self) -> &Viewport {

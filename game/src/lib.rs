@@ -7,7 +7,7 @@ use inline_tweak::tweak;
 use ponygame::video::asset_import::import_mesh_set_as_gc;
 use ponygame::{game, gc};
 // /
-use ponygame::cgmath::{point3, vec3, Matrix4, SquareMatrix, Vector3};
+use ponygame::cgmath::{point3, vec3, Matrix4, SquareMatrix, Vector3, Zero};
 use ponygame::cgmath;
 use ponygame::log;
 
@@ -65,8 +65,11 @@ struct Selector {
     mesh_vert_2: Gp<MeshInstance>,
 
     state: SelectorState,
+    object: GpMaybe<Device>,
     x: i32,
     y: i32,
+
+    is_moving: bool,
 }
 
 impl Selector {
@@ -77,8 +80,11 @@ impl Selector {
                 assets.select_mat.clone(),
                 Matrix4::identity())),
             state: SelectorState::None,
+            object: GpMaybe::none(),
             x: 0,
             y: 0,
+
+            is_moving: false,
         }
     }
 
@@ -97,9 +103,36 @@ impl Selector {
         }
     }
 
-    pub fn update(&mut self, engine: &mut PonyGame, level: &Level) {
+    pub fn do_move(&mut self, engine: &mut PonyGame, level: &Level) {
+        if matches!(self.state, SelectorState::None) { return; }
+
+        let Some(dev) = self.object.get() else { return; };
+
+        let viewport = engine.get_viewport();
+
         let pos = engine.get_cursor_position();
-        let pos = engine.main_camera.convert_cursor_pos(engine.get_viewport(), pos);
+        let pos = engine.main_camera.convert_screen_to_normalized_device(viewport, pos);
+        
+        let intersect = engine.main_camera.intersect_ray_with_plane_from_ndc(pos, viewport, (
+            Vector3::zero(), Vector3::unit_y()
+        )).unwrap();
+
+        self.x = intersect.x as i32;
+        self.y = intersect.z as i32;
+
+        if !engine.get_main_window().left_mouse_down {
+            self.is_moving = false;
+        }
+    }
+
+    pub fn update(&mut self, engine: &mut PonyGame, level: &Level) {
+        if self.is_moving {
+            self.do_move(engine, level);
+            return;
+        }
+
+        let pos = engine.get_cursor_position();
+        let pos = engine.main_camera.convert_screen_to_normalized_device(engine.get_viewport(), pos);
         let vp = engine.main_camera.get_view_projection_matrix(engine.get_viewport());
 
         log::info!("cursor pos @ {:?}", pos);
@@ -107,6 +140,7 @@ impl Selector {
         //let Some(invert) = vp.invert() else { return; };
 
         self.state = SelectorState::None;
+        self.object.set(None);
 
         for x in 0..level.grid.cols() {
             for y in 0..level.grid.rows() {
@@ -128,8 +162,14 @@ impl Selector {
                     self.state = dev.ty.get_selector();
                     // If the object was not selectable, keep looking.
                     if matches!(self.state, SelectorState::None) { continue; }
+
+                    self.object.set(Some(dev));
                     self.x = x as i32;
                     self.y = y as i32;
+
+                    if engine.get_main_window().left_mouse_down {
+                        self.is_moving = true;
+                    }
                     return;
                 }
             }

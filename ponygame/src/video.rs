@@ -11,7 +11,7 @@ use cgmath::{vec3, Vector2, Zero};
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 
 use wgpu::util::DeviceExt;
-use winit::{dpi::{PhysicalSize, Size}, event::WindowEvent, event_loop::{ActiveEventLoop, EventLoopProxy}, window::{WindowAttributes, WindowId}};
+use winit::{dpi::{PhysicalSize, Size}, event::{MouseButton, WindowEvent}, event_loop::{ActiveEventLoop, EventLoopProxy}, window::{WindowAttributes, WindowId}};
 
 use crate::{gc::{Gp, GpMaybe}, video::{camera::Camera, hdr_tonemap::HdrTonemapPipeline, sky_pipeline::SkyPipeline, texture::{DepthTexture, Texture}, world::{Viewport, World}}, PonyGame, PonyGameAppEvent};
 
@@ -645,6 +645,8 @@ pub struct Window {
     pub renderer: PerWindowRenderer,
 
     pub cursor_position: Vector2<f32>,
+
+    pub left_mouse_down: bool,
 }
 
 pub struct Video {
@@ -672,7 +674,8 @@ impl Video {
         let window = Window {
             sdl: underlying_window,
             renderer: per,
-            cursor_position: Vector2::zero()
+            cursor_position: Vector2::zero(),
+            left_mouse_down: false,
         };
         id_map.insert(id, window);
 
@@ -797,6 +800,11 @@ impl Video {
                 window.cursor_position.x = position.x as f32;
                 window.cursor_position.y = position.y as f32;
             },
+            WindowEvent::MouseInput { device_id, state, button } => {
+                if matches!(button, MouseButton::Left) {
+                    window.left_mouse_down = state.is_pressed();
+                }
+            }
             _ => {}
         }
 

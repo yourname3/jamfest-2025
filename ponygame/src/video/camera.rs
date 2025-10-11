@@ -1,6 +1,6 @@
 use std::cell::Cell;
 
-use cgmath::{vec2, Matrix4, SquareMatrix, Vector2};
+use cgmath::{vec2, InnerSpace, Matrix4, SquareMatrix, Vector2, Vector3};
 
 use crate::video::{texture::Texture, world::{Viewport, ViewportUniform}, RenderCtx, UniformBuffer};
 
@@ -45,26 +45,54 @@ impl Camera {
         }
     }
 
-    pub fn convert_cursor_pos(&self, viewport: &Viewport, cursor_pos: Vector2<f32>) -> Vector2<f32> {
-        match self.projection.get() {
-            CameraProjection::Perspective { fovy, znear, zfar } => todo!("uhhhhhh"),
-            CameraProjection::Orthographic { zoom } => {
-                //let cursor_pos = (cursor_pos - vec2(viewport.width as f32 * 0.5, viewport.height as f32 * 0.5));
+    /// Returns two coordinates: The root of the ray, and the direction vector of
+    /// the ray.
+    pub fn ray_from_normalized_device(&self, ndc: Vector2<f32>, viewport: &Viewport) -> (Vector3<f32>, Vector3<f32>) {
+        let view_proj = self.get_view_projection_matrix(viewport);
+        let inverse = view_proj.invert().unwrap();
 
-                //return (cursor_pos * zoom) / (viewport.height as f32 * 2.0);
+        let root = inverse * ndc.extend(0.0).extend(1.0);
+        let out = inverse * ndc.extend(1.0).extend(1.0);
 
-                let normalized = vec2(
-                    cursor_pos.x / (0.5 * viewport.width as f32),
-                    cursor_pos.y / (-0.5 * viewport.height as f32),
-                ) + vec2(-1.0, 1.0);
-                return normalized;
+        let dir = out.truncate() - root.truncate();
+        (root.truncate(), out.truncate())
+    }
 
-                //let proj = self.get_projection_matrix(viewport);
-                //let proj = proj * Matrix4::from_scale(1.0 / viewport.width as f32);
-                //let invert = proj.invert().unwrap();
-                //(proj * cursor_pos.extend(0.0).extend(1.0)).truncate().truncate()
-            },
+    /// Takes a plane as a (Point, Normal) pair and returns the intersection of
+    /// the given ray with that plane.
+    pub fn intersect_ray_with_plane_from_ndc(&self, ndc: Vector2<f32>, viewport: &Viewport, plane: (Vector3<f32>, Vector3<f32>)) -> Option<Vector3<f32>> {
+        let (ray_point, ray_dir) = self.ray_from_normalized_device(ndc, viewport);
+        let denom = plane.1.dot(ray_dir);
+        if denom.abs() < 1e-6 {
+            return None;
         }
+        let t = plane.1.dot(plane.0 - ray_point) / denom;
+        if t < 0.0 { return None; }
+
+        Some(ray_point + ray_dir * t)
+    }
+
+    pub fn convert_screen_to_normalized_device(&self, viewport: &Viewport, cursor_pos: Vector2<f32>) -> Vector2<f32> {
+        let normalized = vec2(
+            cursor_pos.x / (0.5 * viewport.width as f32),
+            cursor_pos.y / (-0.5 * viewport.height as f32),
+        ) + vec2(-1.0, 1.0);
+        return normalized;
+        // match self.projection.get() {
+        //     CameraProjection::Perspective { fovy, znear, zfar } => todo!("uhhhhhh"),
+        //     CameraProjection::Orthographic { zoom } => {
+        //         //let cursor_pos = (cursor_pos - vec2(viewport.width as f32 * 0.5, viewport.height as f32 * 0.5));
+
+        //         //return (cursor_pos * zoom) / (viewport.height as f32 * 2.0);
+
+                
+
+        //         //let proj = self.get_projection_matrix(viewport);
+        //         //let proj = proj * Matrix4::from_scale(1.0 / viewport.width as f32);
+        //         //let invert = proj.invert().unwrap();
+        //         //(proj * cursor_pos.extend(0.0).extend(1.0)).truncate().truncate()
+        //     },
+        // }
     }
 
     pub fn get_view_projection_matrix(&self, viewport: &Viewport) -> cgmath::Matrix4<f32> {
