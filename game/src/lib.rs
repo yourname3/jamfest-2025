@@ -26,7 +26,52 @@ struct Assets {
     emitter: Gp<Mesh>,
     emitter_mat: Gp<PBRMaterial>,
 
+    select_vert_2: Gp<Mesh>,
+    select_mat: Gp<PBRMaterial>,
+
     sfx0: Sound,
+}
+
+enum SelectorState {
+    None,
+    Vert2,
+}
+
+struct Selector {
+    mesh_vert_2: Gp<MeshInstance>,
+
+    state: SelectorState,
+    x: i32,
+    y: i32,
+}
+
+impl Selector {
+    pub fn new(ctx: &RenderCtx, assets: &Assets) -> Self {
+        Selector {
+            mesh_vert_2: Gp::new(MeshInstance::new(ctx,
+                assets.select_vert_2.clone(),
+                assets.select_mat.clone(),
+                Matrix4::identity())),
+            state: SelectorState::None,
+            x: 0,
+            y: 0,
+        }
+    }
+
+    pub fn push_mesh(&mut self, engine: &mut PonyGame) {
+        let transform = Matrix4::from_translation(vec3(self.x as f32, 0.0, self.y as f32));
+        let mesh_instance = match self.state {
+            SelectorState::None => None,
+            SelectorState::Vert2 => Some(&self.mesh_vert_2),
+        };
+
+        if let Some(mesh_instance) = mesh_instance {
+            mesh_instance.transform.set(transform);
+            mesh_instance.update(engine.render_ctx());
+
+            engine.main_world.push_mesh(mesh_instance.clone());
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -271,6 +316,12 @@ impl Assets {
                 ..PBRMaterial::default(ctx)
             }),
 
+            select_vert_2: mesh!(ctx, "./assets/select_vert_2.glb"),
+            select_mat: Gp::new(PBRMaterial {
+                shader: Gp::new(PBRShader::new(ctx, "select.wgsl", include_str!("./shaders/select.wgsl"))),
+                ..PBRMaterial::default(ctx)
+            }),
+
             laser: mesh!(ctx, "./assets/laser.glb"),
             laser_mat: Gp::new(PBRMaterial {
                 shader: Gp::new(PBRShader::new(ctx, "laser.wgsl", include_str!("./shaders/laser.wgsl"))),
@@ -302,6 +353,8 @@ pub struct GameplayLogic {
 
     assets: Assets,
     level: Level,
+
+    selector: Selector,
 }
 
 // meow
@@ -345,10 +398,13 @@ impl ponygame::Gameplay for GameplayLogic {
         level.try_place(0, 2, DeviceTy::Emitter);
         level.try_place(5, 2, DeviceTy::Mix);
 
+        let selector = Selector::new(ctx, &assets);
+
         GameplayLogic {
             assets,
             theta: 0.0,
             level,
+            selector,
         }
     }
 
@@ -360,8 +416,13 @@ impl ponygame::Gameplay for GameplayLogic {
 
         self.level.build_lasers();
 
+        self.selector.x = 5;
+        self.selector.y = 2;
+        self.selector.state = SelectorState::Vert2;
+
         engine.main_world.clear_meshes();
         self.level.build_meshes(engine, &self.assets);
+        self.selector.push_mesh(engine);
 
         //let offset = vec3(0.3 * f32::cos(self.theta), 0.0, 0.3 * f32::sin(self.theta));
 
