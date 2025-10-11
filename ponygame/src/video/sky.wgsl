@@ -48,9 +48,9 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4f {
     let PI = 3.141592653589793238462643383;
 
     // Panoramic sample:
-    let u = (atan2(ray.z, ray.x) / (2.0 * PI)) + 0.5;
-    let v = (-asin(ray.y) / PI) + 0.5;
-    let sample = textureSampleLevel(envmap_t, envmap_s, vec2f(u, v), 0.0);
+    // let u = (atan2(ray.z, ray.x) / (2.0 * PI)) + 0.5;
+    // let v = (-asin(ray.y) / PI) + 0.5;
+    // let sample = textureSampleLevel(envmap_t, envmap_s, vec2f(u, v), 0.0);
 
-    return sample * 1.0;
+    return vec4f(0.0, 0.0, 0.0, 1.0); //sample * 1.0;
 }
