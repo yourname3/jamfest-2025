@@ -42,10 +42,16 @@ impl DeviceTy {
         ))
     }
 
-    pub fn make_lasers(&self, x: i32, y: i32, lasers: &mut Vec<Laser>) {
+    pub fn make_lasers(&self, x: i32, y: i32, lasers: &mut Vec<Laser>, ends_h: &Grid<Option<LaserValue>>) {
         match self {
             DeviceTy::Mix => {
-                let laser = Laser { x, y: y + 1, length: 0, value: LaserValue { color: vec3(1.0, 0.0, 0.0) } };
+                let Some(Some(left)) = ends_h.get(y as usize, x as usize) else { return; };
+                let Some(Some(right)) = ends_h.get(y as usize + 1, x as usize) else { return; };
+
+                let laser = Laser {
+                    x, y: y + 1, length: 0,
+                    value: LaserValue::color((left.color + right.color) * 0.5)
+                };
                 lasers.push(laser);
             },
             DeviceTy::Emitter(value) => {
@@ -71,6 +77,18 @@ pub enum GridCell {
     Wall,
     DeviceRoot(Gp<Device>),
     DeviceEtc(Gp<Device>),
+}
+
+impl std::fmt::Debug for GridCell {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Void => write!(f, "Void"),
+            Self::Empty => write!(f, "Empty"),
+            Self::Wall => write!(f, "Wall"),
+            Self::DeviceRoot(arg0) => write!(f, "DeviceRoot"),
+            Self::DeviceEtc(arg0) => write!(f, "DeviceEtc"),
+        }
+    }
 }
 
 impl Default for GridCell {
@@ -248,6 +266,11 @@ impl Level {
                     if let Some((mesh, mat)) = mesh_mat {
                         level.spawn_static_tile(engine, mesh, mat, x as i32, y as i32);
                     }
+
+                    // Objects are placeable on the floor
+                    if matches!(tile.id(), FLOOR) {
+                        *level.grid.get_mut(y as u32, x as u32).unwrap() = GridCell::Empty;
+                    }
                 }
             }
         }
@@ -266,7 +289,8 @@ impl Level {
                     };
                     // Use force place because level objects can be overlapping
                     // the void / the partial-void.
-                    level.force_place((obj.x / 32.0) as i32,( obj.y / 32.0) as i32,
+                    // Note: Tiled's Y positions are very weird. Subtract 32
+                    level.force_place(f32::floor(obj.x / 32.0) as i32,f32::floor( (obj.y - 32.0) / 32.0) as i32,
                         DeviceTy::Emitter(LaserValue::color(color)));
                 },
                 _ => {}
@@ -284,6 +308,7 @@ impl Level {
         if y as usize >= self.grid.rows() { return false; }
 
         // Safety: We've confirmed they're positive.
+        log::info!("checking @ {},{} => {:?}", x, y, self.grid.get(y as usize, x as usize));
         return matches!(self.grid.get(y as usize, x as usize).unwrap(), GridCell::Empty);
     }
 
@@ -311,8 +336,11 @@ impl Level {
     }
 
     pub fn try_place(&mut self, x: i32, y: i32, ty: DeviceTy) {
+        log::info!("try_place @ {},{}", x, y);
+
         for cell in ty.get_cells() {
-            if !self.is_in_bounds_and_empty(y + cell.1, x + cell.0) {
+            if !self.is_in_bounds_and_empty(x + cell.0, y + cell.1) {
+                log::info!("failed due to {}, {} being {:?}",  x + cell.0, y + cell.1, self.grid.get(y + cell.1, x + cell.0));
                 return;
             }
         }
@@ -357,7 +385,9 @@ impl Level {
         // Minimum length is 1??
         self.lasers[idx].length += 1;
 
-        *self.h_laser_ends.get_mut(y, x - 1).unwrap() = Some(self.lasers[idx].value.clone());
+        if (x as usize) < self.h_laser_ends.cols() {
+            *self.h_laser_ends.get_mut(y, x).unwrap() = Some(self.lasers[idx].value.clone());
+        }
     }
 
     pub fn build_lasers(&mut self) {
@@ -373,7 +403,7 @@ impl Level {
                 //log::info!("cell @ {},{} => {:?}", x, y, std::mem::discriminant(cell));
                 match cell {
                     GridCell::DeviceRoot(device) => {
-                        device.ty.make_lasers(x as i32, y as i32, &mut self.lasers);
+                        device.ty.make_lasers(x as i32, y as i32, &mut self.lasers, &self.h_laser_ends);
                         while laser_len < self.lasers.len() {
                             self.extend_laser_h(laser_len);
                             laser_len += 1;
