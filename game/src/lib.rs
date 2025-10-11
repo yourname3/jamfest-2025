@@ -1,5 +1,7 @@
 use std::f32::consts::PI;
 
+mod level;
+
 use grid::Grid;
 use inline_tweak::tweak;
 use ponygame::{game, gc};
@@ -11,6 +13,8 @@ use ponygame::log;
 use ponygame::video::camera::CameraProjection;
 use ponygame::video::{PBRShader, RenderCtx};
 use ponygame::{audio::Sound, gc::{Gp, GpMaybe}, video::{asset_import::import_binary_data, mesh_render_pipeline::{Mesh, MeshInstance}, texture::Texture, PBRMaterial}, PonyGame};
+
+use level::*;
 
 struct Assets {
     horse_mesh: Gp<Mesh>,
@@ -76,231 +80,6 @@ impl Selector {
             mesh_instance.update(engine.render_ctx());
 
             engine.main_world.push_mesh(mesh_instance.clone());
-        }
-    }
-}
-
-#[derive(Clone, Copy, Debug)]
-enum DeviceTy {
-    Mix,
-    Emitter,
-}
-
-impl DeviceTy {
-    pub fn get_cells(&self) -> &'static [(i32, i32)] {
-        match self {
-            DeviceTy::Mix => &[(0, 0), (0, 1)],
-            DeviceTy::Emitter => &[(0, 0)],
-        }
-    }
-
-    pub fn mk_mesh_instance(&self, engine: &PonyGame, assets: &Assets, transform: cgmath::Matrix4<f32>) -> Gp<MeshInstance> {
-        let (mesh, mat) = match self {
-            DeviceTy::Mix => (&assets.node_mix, &assets.node_mix_mat),
-            DeviceTy::Emitter => (&assets.emitter, &assets.emitter_mat),
-        };
-        Gp::new(MeshInstance::new(
-            engine.render_ctx(),
-            mesh.clone(),
-            mat.clone(),
-            transform
-        ))
-    }
-
-    pub fn make_lasers(&self, x: i32, y: i32, lasers: &mut Vec<Laser>) {
-        match self {
-            DeviceTy::Mix => {
-                let laser = Laser { x, y: y + 1, length: 0, value: LaserValue { color: vec3(1.0, 0.0, 0.0) } };
-                lasers.push(laser);
-            },
-            DeviceTy::Emitter => {
-                let laser = Laser { x, y, length: 0, value: LaserValue { color: vec3(1.0, 0.0, 0.0) } };
-                lasers.push(laser);
-            }
-        }
-    }
-}
-
-struct Device {
-    x: i32,
-    y: i32,
-    ty: DeviceTy,
-}
-gc!(Device, 0x00080000_u64);
-
-enum GridCell {
-    Empty,
-    Wall,
-    DeviceRoot(Gp<Device>),
-    DeviceEtc(Gp<Device>),
-}
-
-impl Default for GridCell {
-    fn default() -> Self {
-        GridCell::Empty
-    }
-}
-
-#[derive(Clone)]
-struct LaserValue {
-    color: Vector3<f32>,
-}
-
-struct Laser {
-    x: i32,
-    y: i32,
-    length: i32,
-    value: LaserValue,
-}
-
-struct Level {
-    floor_meshes: Vec<Gp<MeshInstance>>,
-    grid: Grid<GridCell>,
-    lasers: Vec<Laser>,
-    h_laser_ends: Grid<Option<LaserValue>>,
-}
-
-impl Level {
-    /// Shouldl be called once, to instantiate all the floor meshes.
-    fn build_floor_meshes(&mut self, engine: &PonyGame, assets: &Assets) {
-        // For now, just put one every spot on the grid...?
-        for ((y, x), cell) in self.grid.indexed_iter() {
-            let (mesh, mat) = match cell {
-                GridCell::Wall => (&assets.wall_side, &assets.wall_mat),
-                _ => (&assets.floor_tile, &assets.floor_tile_mat)
-            };
-
-            let instance = Gp::new(MeshInstance::new(
-                engine.render_ctx(),
-                mesh.clone(),
-                mat.clone(),
-                Matrix4::from_translation(vec3(x as f32, 0.0, y as f32))
-            ));
-            //log::info!("instantiate floor mesh @ {},{}", x, y);
-            self.floor_meshes.push(instance);
-        }
-    }
-
-    fn build_debug_border(&mut self) {
-        for cell in self.grid.iter_row_mut(0) {
-            *cell = GridCell::Wall;
-        }
-        for cell in self.grid.iter_row_mut(self.grid.rows() - 1) {
-            *cell = GridCell::Wall;
-        }
-
-        for cell in self.grid.iter_col_mut(0) {
-            *cell = GridCell::Wall;
-        }
-        for cell in self.grid.iter_col_mut(self.grid.cols() - 1) {
-            *cell = GridCell::Wall;
-        }
-    }
-
-    pub fn new(width: usize, height: usize, engine: &PonyGame, assets: &Assets) -> Level {
-        let mut level = Level {
-            // Use column-major order so that when we iterate over 
-            floor_meshes: Vec::new(),
-            grid: Grid::new_with_order(height, width, grid::Order::ColumnMajor),
-            lasers: Vec::new(),
-            h_laser_ends: Grid::new_with_order(height, width, grid::Order::ColumnMajor),
-        };
-
-        level.build_debug_border();
-        level.build_floor_meshes(engine, assets);
-
-        level
-    }
-
-    pub fn is_in_bounds_and_empty(&self, x: i32, y: i32) -> bool {
-        if x < 0 || y < 0 { return false; }
-        if x as usize >= self.grid.cols() { return false; }
-        if y as usize >= self.grid.rows() { return false; }
-
-        // Safety: We've confirmed they're positive.
-        return matches!(self.grid.get(y as usize, x as usize).unwrap(), GridCell::Empty);
-    }
-
-    pub fn try_place(&mut self, x: i32, y: i32, ty: DeviceTy) {
-        for cell in ty.get_cells() {
-            if !self.is_in_bounds_and_empty(y + cell.1, x + cell.0) {
-                return;
-            }
-        }
-
-        let device = Gp::new(Device {
-            x, y, ty
-        });
-
-        //log::info!("placed {:?} @ {},{}", ty, x, y);
-
-        for cell in ty.get_cells() {
-            *self.grid.get_mut((y + cell.1) as usize, (x + cell.0) as usize).unwrap() = 
-                if matches!(cell, (0, 0)) { GridCell::DeviceRoot(device.clone()) } 
-                else { GridCell::DeviceEtc(device.clone()) };
-        }
-    }
-
-    pub fn build_meshes(&mut self, engine: &mut PonyGame, assets: &Assets) {
-        for ((y, x), cell) in self.grid.indexed_iter() {
-            //log::info!("cell @ {},{} => {:?}", x, y, std::mem::discriminant(cell));
-            match cell {
-                GridCell::DeviceRoot(device) => {
-                    engine.main_world.push_mesh(device.ty.mk_mesh_instance(engine, assets, 
-                        Matrix4::from_translation(vec3(x as f32, 0.0, y as f32))))
-                },
-                _ => {}
-            }
-        }
-
-        for laser in &self.lasers {
-            engine.main_world.push_mesh(assets.laser(engine.render_ctx(),
-                // Add a horizontal offset of 0.5 so that the laser is good. 
-                Matrix4::from_translation(vec3(laser.x as f32 + 0.5, 0.0, laser.y as f32))
-                * Matrix4::from_nonuniform_scale(laser.length as f32, 1.0, 1.0
-            )))
-        }
-
-        for mesh in &self.floor_meshes {
-            engine.main_world.push_mesh(mesh.clone());
-        }
-    }
-
-    pub fn extend_laser_h(&mut self, idx: usize) {
-        let Laser { mut x, y, .. } = self.lasers[idx];
-        x += 1;
-        while self.is_in_bounds_and_empty(x, y) {
-            self.lasers[idx].length += 1;
-            x += 1;
-        }
-        // Minimum length is 1??
-        self.lasers[idx].length += 1;
-
-        *self.h_laser_ends.get_mut(y, x - 1).unwrap() = Some(self.lasers[idx].value.clone());
-    }
-
-    pub fn build_lasers(&mut self) {
-        // Clear the grid to all None.
-        self.h_laser_ends.fill(None);
-        self.lasers.clear();
-
-        let mut laser_len = 0usize;
-
-        for x in 0..self.grid.cols() {
-            for y in 0..self.grid.rows() {
-                let cell = self.grid.get(y, x).unwrap();
-                //log::info!("cell @ {},{} => {:?}", x, y, std::mem::discriminant(cell));
-                match cell {
-                    GridCell::DeviceRoot(device) => {
-                        device.ty.make_lasers(x as i32, y as i32, &mut self.lasers);
-                        while laser_len < self.lasers.len() {
-                            self.extend_laser_h(laser_len);
-                            laser_len += 1;
-                        }
-                    },
-                    _ => {}
-                }
-            }
         }
     }
 }
@@ -468,7 +247,7 @@ impl ponygame::Gameplay for GameplayLogic {
             zoom: 10.0,
         });
 
-        let mut level = Level::new(40, 40, engine, &assets);
+        let mut level = Level::new_from_map("./levels/test.tmx", engine, &assets);
         level.try_place(0, 2, DeviceTy::Emitter);
         level.try_place(5, 2, DeviceTy::Mix);
 
