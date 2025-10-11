@@ -391,7 +391,8 @@ impl Assets {
 
             wall_side: mesh!(ctx, "./assets/wall/wall_side.glb"),
             wall_mat: Gp::new(PBRMaterial {
-                shader: Gp::new(PBRShader::new(ctx, "select.wgsl", include_str!("./shaders/select.wgsl"))),
+                albedo_texture: metal_046_a.clone(),
+                metallic_roughness_texture: metal_046_m.clone(),
                 ..PBRMaterial::default(ctx)
             }),
 
