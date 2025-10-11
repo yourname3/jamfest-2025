@@ -69,6 +69,9 @@ struct Selector {
     x: i32,
     y: i32,
 
+    start_x: i32,
+    start_y: i32,
+
     is_moving: bool,
 }
 
@@ -83,6 +86,9 @@ impl Selector {
             object: GpMaybe::none(),
             x: 0,
             y: 0,
+
+            start_x: 0,
+            start_y: 0,
 
             is_moving: false,
         }
@@ -103,7 +109,7 @@ impl Selector {
         }
     }
 
-    pub fn do_move(&mut self, engine: &mut PonyGame, level: &Level) {
+    pub fn do_move(&mut self, engine: &mut PonyGame, level: &mut Level) {
         if matches!(self.state, SelectorState::None) { return; }
 
         let Some(dev) = self.object.get() else { return; };
@@ -120,12 +126,14 @@ impl Selector {
         self.x = intersect.x as i32;
         self.y = intersect.z as i32;
 
+        level.move_from(self.start_x, self.start_y, &dev, self.x, self.y);
+
         if !engine.get_main_window().left_mouse_down {
             self.is_moving = false;
         }
     }
 
-    pub fn update(&mut self, engine: &mut PonyGame, level: &Level) {
+    pub fn update(&mut self, engine: &mut PonyGame, level: &mut Level) {
         if self.is_moving {
             self.do_move(engine, level);
             return;
@@ -166,6 +174,8 @@ impl Selector {
                     self.object.set(Some(dev));
                     self.x = x as i32;
                     self.y = y as i32;
+                    self.start_x = self.x;
+                    self.start_y = self.y;
 
                     if engine.get_main_window().left_mouse_down {
                         self.is_moving = true;
@@ -392,7 +402,7 @@ impl ponygame::Gameplay for GameplayLogic {
 
         self.level.build_lasers();
 
-        self.selector.update(engine, &self.level);
+        self.selector.update(engine, &mut self.level);
 
         engine.main_world.clear_meshes();
         self.level.build_meshes(engine, &self.assets);

@@ -1,3 +1,4 @@
+use std::cell::Cell;
 use std::f32::consts::PI;
 
 use grid::Grid;
@@ -78,8 +79,8 @@ impl DeviceTy {
 }
 
 pub struct Device {
-    pub x: i32,
-    pub y: i32,
+    pub x: Cell<i32>,
+    pub y: Cell<i32>,
     pub ty: DeviceTy,
 }
 gc!(Device, 0x00080000_u64);
@@ -327,6 +328,14 @@ impl Level {
         return matches!(self.grid.get(y as usize, x as usize).unwrap(), GridCell::Empty);
     }
 
+    pub fn is_in_bounds(&self, x: i32, y: i32) -> bool {
+        if x < 0 || y < 0 { return false; }
+        if x as usize >= self.grid.cols() { return false; }
+        if y as usize >= self.grid.rows() { return false; }
+
+        return true;
+    }
+
     pub fn is_in_bounds_and_laser_travelable(&self, x: i32, y: i32) -> bool {
         if x < 0 || y < 0 { return false; }
         if x as usize >= self.grid.cols() { return false; }
@@ -336,31 +345,69 @@ impl Level {
         return matches!(self.grid.get(y as usize, x as usize).unwrap(), GridCell::Empty | GridCell::Void);
     }
 
+    fn force_place_existing(&mut self, x: i32, y: i32, dev: &Gp<Device>) {
+        dev.x.set(x);
+        dev.y.set(y);
+
+        for cell in dev.ty.get_cells() {
+            *self.grid.get_mut((y + cell.1) as usize, (x + cell.0) as usize).unwrap() = 
+                if matches!(cell, (0, 0)) { GridCell::DeviceRoot(dev.clone()) } 
+                else { GridCell::DeviceEtc(dev.clone()) };
+        }
+    }
+
     fn force_place(&mut self, x: i32, y: i32, ty: DeviceTy) {
         log::info!("placed {:?} @ {},{}", ty, x, y);
 
         let device = Gp::new(Device {
-            x, y, ty: ty.clone()
+            x: Cell::new(x), y: Cell::new(y), ty: ty.clone()
         });
 
+        self.force_place_existing(x, y, &device);
+    }
+
+    pub fn may_place_at(&mut self, x: i32, y: i32, ty: &DeviceTy) -> bool {
         for cell in ty.get_cells() {
-            *self.grid.get_mut((y + cell.1) as usize, (x + cell.0) as usize).unwrap() = 
-                if matches!(cell, (0, 0)) { GridCell::DeviceRoot(device.clone()) } 
-                else { GridCell::DeviceEtc(device.clone()) };
+            if !self.is_in_bounds_and_empty(x + cell.0, y + cell.1) {
+                log::info!("failed due to {}, {} being {:?}",  x + cell.0, y + cell.1, self.grid.get(y + cell.1, x + cell.0));
+                return false;
+            }
         }
+        return true;
     }
 
     pub fn try_place(&mut self, x: i32, y: i32, ty: DeviceTy) {
         log::info!("try_place @ {},{}", x, y);
 
-        for cell in ty.get_cells() {
-            if !self.is_in_bounds_and_empty(x + cell.0, y + cell.1) {
-                log::info!("failed due to {}, {} being {:?}",  x + cell.0, y + cell.1, self.grid.get(y + cell.1, x + cell.0));
-                return;
-            }
-        }
+        if !self.may_place_at(x, y, &ty) { return; }
 
         self.force_place(x, y, ty);
+    }
+
+    /// Removes the given device's bounding box from the given location.
+    /// Should only be called if we believe the device is at that loccation.
+    fn clear_at(&mut self, x: i32, y: i32, dev: &Gp<Device>) {
+        for cell in dev.ty.get_cells() {
+            let x = x + cell.0;
+            let y = y + cell.1;
+
+            assert!(self.is_in_bounds(x, y));
+            *self.grid.get_mut(y as usize, x as usize).unwrap() = GridCell::Empty;
+        }
+    }
+
+    pub fn move_from(&mut self, x: i32, y: i32, dev: &Gp<Device>, to_x: i32, to_y: i32) {
+        // Remove the device from its starting location and from wherever it is
+        // currently located.
+        self.clear_at(x, y, dev);
+        self.clear_at(dev.x.get(), dev.y.get(), dev);
+
+        if self.may_place_at(to_x, to_y, &dev.ty) {
+            self.force_place_existing(to_x, to_y, dev);
+        }
+        else {
+            self.force_place_existing(x, y, dev);
+        }
     }
 
     pub fn build_meshes(&mut self, engine: &mut PonyGame, assets: &Assets) {
