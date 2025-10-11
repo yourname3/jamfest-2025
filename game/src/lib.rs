@@ -124,7 +124,7 @@ macro_rules! tweak_vec3 {
 impl GameplayLogic {
     #[inline_tweak::tweak_fn]
     pub fn tweak_scene(&mut self, engine: &mut PonyGame) {
-        engine.main_world.lights[0].color.set(vec3(3.0, 3.0, 3.0));
+        engine.main_world.lights[0].color.set(vec3(5.0, 5.0, 5.0));
     }
 }
 
@@ -139,8 +139,8 @@ impl ponygame::Gameplay for GameplayLogic {
         // let transform1 = cgmath::Matrix4::from_translation(vec3( 0.5, 0.0, 0.0));
 
         engine.main_world.set_envmap(&Gp::new(Texture::from_bytes_rgba16unorm(ctx,
-            include_bytes!("./assets/envmap_1k.exr"),
-            //include_bytes!("./assets/preller_drive_1k.exr"),
+            //include_bytes!("./assets/envmap_1k.exr"),
+            include_bytes!("./assets/preller_drive_1k.exr"),
             Some("horn-koppe_spring_1k.exr"),
             true).unwrap()));
 
