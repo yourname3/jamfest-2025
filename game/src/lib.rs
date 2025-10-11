@@ -23,24 +23,30 @@ struct Assets {
     laser: Gp<Mesh>,
     laser_mat: Gp<PBRMaterial>,
 
+    emitter: Gp<Mesh>,
+    emitter_mat: Gp<PBRMaterial>,
+
     sfx0: Sound,
 }
 
 #[derive(Clone, Copy, Debug)]
 enum DeviceTy {
     Mix,
+    Emitter,
 }
 
 impl DeviceTy {
     pub fn get_cells(&self) -> &'static [(i32, i32)] {
         match self {
             DeviceTy::Mix => &[(0, 0), (0, 1)],
+            DeviceTy::Emitter => &[(0, 0)],
         }
     }
 
     pub fn mk_mesh_instance(&self, engine: &PonyGame, assets: &Assets, transform: cgmath::Matrix4<f32>) -> Gp<MeshInstance> {
         let (mesh, mat) = match self {
             DeviceTy::Mix => (&assets.node_mix, &assets.node_mix_mat),
+            DeviceTy::Emitter => (&assets.emitter, &assets.emitter_mat),
         };
         Gp::new(MeshInstance::new(
             engine.render_ctx(),
@@ -56,6 +62,10 @@ impl DeviceTy {
                 let laser = Laser { x, y: y + 1, length: 0, value: LaserValue { color: vec3(1.0, 0.0, 0.0) } };
                 lasers.push(laser);
             },
+            DeviceTy::Emitter => {
+                let laser = Laser { x, y, length: 0, value: LaserValue { color: vec3(1.0, 0.0, 0.0) } };
+                lasers.push(laser);
+            }
         }
     }
 }
@@ -253,6 +263,14 @@ impl Assets {
                 ..PBRMaterial::default(ctx)
             }),
 
+            emitter: mesh!(ctx, "./assets/emitter.glb"),
+            emitter_mat: Gp::new(PBRMaterial {
+                albedo_texture: texture_linear!(ctx, "./assets/mat/brass_4k/albedo.png"),
+                metallic_roughness_texture: texture_linear!(ctx, "./assets/mat/brass_4k/pbr.png"),
+                albedo_decal_texture: texture_srgb!(ctx, "./assets/emitter_label.png"),
+                ..PBRMaterial::default(ctx)
+            }),
+
             laser: mesh!(ctx, "./assets/laser.glb"),
             laser_mat: Gp::new(PBRMaterial {
                 shader: Gp::new(PBRShader::new(ctx, "laser.wgsl", include_str!("./shaders/laser.wgsl"))),
@@ -324,8 +342,7 @@ impl ponygame::Gameplay for GameplayLogic {
         });
 
         let mut level = Level::new(40, 40);
-        level.try_place(0, 0, DeviceTy::Mix);
-        level.try_place(1, 1, DeviceTy::Mix);
+        level.try_place(0, 2, DeviceTy::Emitter);
         level.try_place(5, 2, DeviceTy::Mix);
 
         GameplayLogic {

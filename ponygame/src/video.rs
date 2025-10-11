@@ -315,7 +315,7 @@ impl PBRMaterial {
     pub fn default(ctx: &RenderCtx) -> Self {
         PBRMaterial {
             albedo: vec3(1.0, 1.0, 1.0),
-            metallic: 0.0,
+            metallic: 1.0,
             roughness: 1.0,
             reflectance: 0.5,
             albedo_texture: Texture::dummy(ctx, Some("Texture::dummy::albedo")),
