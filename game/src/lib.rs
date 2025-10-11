@@ -1,4 +1,4 @@
-use inline_tweak::Tweakable;
+use inline_tweak::tweak;
 use ponygame::game;
 // /
 use ponygame::cgmath::{point3, vec3, Matrix4, SquareMatrix};
@@ -104,15 +104,9 @@ macro_rules! tweak_vec3 {
 }
 
 impl GameplayLogic {
+    #[inline_tweak::tweak_fn]
     pub fn tweak_scene(&mut self, engine: &mut PonyGame) {
-        engine.main_world.lights[0].color.set(
-            //tweak_vec3!(40.0, 1.0, 1.0)
-            vec3(
-                inline_tweak::tweak!(5.0),
-                inline_tweak::tweak!(5.0),
-                inline_tweak::tweak!(5.0)
-            )
-        );
+        engine.main_world.lights[0].color.set(vec3(1.0, 1.0, 1.0));
     }
 }
 
@@ -152,8 +146,6 @@ impl ponygame::Gameplay for GameplayLogic {
 
         self.theta += 0.1;
         self.tweak_scene(engine);
-
-        log::info!("{} {:?} {:?}", std::file!(), std::fs::File::open(std::file!()), std::env::current_dir());
 
         //let offset = vec3(0.3 * f32::cos(self.theta), 0.0, 0.3 * f32::sin(self.theta));
 

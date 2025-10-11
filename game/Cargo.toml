@@ -24,7 +24,7 @@ name = "game"
 path = "src/main.rs"
 
 [dependencies]
-inline_tweak = { path = "../inline_tweak" }
+inline_tweak = { path = "../inline_tweak", features = ["derive"] }
 ponygame = { version = "0.1.0", path = "../ponygame" }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
