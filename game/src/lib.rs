@@ -4,7 +4,7 @@ use grid::Grid;
 use inline_tweak::tweak;
 use ponygame::{game, gc};
 // /
-use ponygame::cgmath::{point3, vec3, Matrix4, SquareMatrix};
+use ponygame::cgmath::{point3, vec3, Matrix4, SquareMatrix, Vector3};
 use ponygame::cgmath;
 use ponygame::log;
 
@@ -49,6 +49,15 @@ impl DeviceTy {
             transform
         ))
     }
+
+    pub fn make_lasers(&self, x: i32, y: i32, lasers: &mut Vec<Laser>) {
+        match self {
+            DeviceTy::Mix => {
+                let laser = Laser { x, y: y + 1, length: 0, value: LaserValue { color: vec3(1.0, 0.0, 0.0) } };
+                lasers.push(laser);
+            },
+        }
+    }
 }
 
 struct Device {
@@ -70,14 +79,31 @@ impl Default for GridCell {
     }
 }
 
+#[derive(Clone)]
+struct LaserValue {
+    color: Vector3<f32>,
+}
+
+struct Laser {
+    x: i32,
+    y: i32,
+    length: i32,
+    value: LaserValue,
+}
+
 struct Level {
     grid: Grid<GridCell>,
+    lasers: Vec<Laser>,
+    h_laser_ends: Grid<Option<LaserValue>>,
 }
 
 impl Level {
     pub fn new(width: usize, height: usize) -> Level {
         Level {
-            grid: Grid::new(height, width)
+            // Use column-major order so that when we iterate over 
+            grid: Grid::new_with_order(height, width, grid::Order::ColumnMajor),
+            lasers: Vec::new(),
+            h_laser_ends: Grid::new_with_order(height, width, grid::Order::ColumnMajor),
         }
     }
 
@@ -92,7 +118,7 @@ impl Level {
 
     pub fn try_place(&mut self, x: i32, y: i32, ty: DeviceTy) {
         for cell in ty.get_cells() {
-            if !self.is_in_bounds_and_empty(x + cell.0, y + cell.1) {
+            if !self.is_in_bounds_and_empty(y + cell.1, x + cell.0) {
                 return;
             }
         }
@@ -101,24 +127,68 @@ impl Level {
             x, y, ty
         });
 
-        log::info!("placed {:?} @ {},{}", ty, x, y);
+        //log::info!("placed {:?} @ {},{}", ty, x, y);
 
         for cell in ty.get_cells() {
-            *self.grid.get_mut((x + cell.0) as usize, (y + cell.1) as usize).unwrap() = 
+            *self.grid.get_mut((y + cell.1) as usize, (x + cell.0) as usize).unwrap() = 
                 if matches!(cell, (0, 0)) { GridCell::DeviceRoot(device.clone()) } 
                 else { GridCell::DeviceEtc(device.clone()) };
         }
     }
 
     pub fn build_meshes(&mut self, engine: &mut PonyGame, assets: &Assets) {
-        for ((x, y), cell) in self.grid.indexed_iter() {
-            log::info!("cell @ {},{} => {:?}", x, y, std::mem::discriminant(cell));
+        for ((y, x), cell) in self.grid.indexed_iter() {
+            //log::info!("cell @ {},{} => {:?}", x, y, std::mem::discriminant(cell));
             match cell {
                 GridCell::DeviceRoot(device) => {
                     engine.main_world.push_mesh(device.ty.mk_mesh_instance(engine, assets, 
                         Matrix4::from_translation(vec3(x as f32, 0.0, y as f32))))
                 },
                 _ => {}
+            }
+        }
+
+        for laser in &self.lasers {
+            engine.main_world.push_mesh(assets.laser(engine.render_ctx(),
+                // Add a horizontal offset of 0.5 so that the laser is good. 
+                Matrix4::from_translation(vec3(laser.x as f32 + 0.5, 0.0, laser.y as f32))
+                * Matrix4::from_nonuniform_scale(laser.length as f32, 1.0, 1.0
+            )))
+        }
+    }
+
+    pub fn extend_laser_h(&mut self, idx: usize) {
+        let Laser { mut x, y, .. } = self.lasers[idx];
+        x += 1;
+        while self.is_in_bounds_and_empty(x, y) {
+            self.lasers[idx].length += 1;
+            x += 1;
+        }
+
+        *self.h_laser_ends.get_mut(y, x - 1).unwrap() = Some(self.lasers[idx].value.clone());
+    }
+
+    pub fn build_lasers(&mut self) {
+        // Clear the grid to all None.
+        self.h_laser_ends.fill(None);
+        self.lasers.clear();
+
+        let mut laser_len = 0usize;
+
+        for x in 0..self.grid.cols() {
+            for y in 0..self.grid.rows() {
+                let cell = self.grid.get(y, x).unwrap();
+                //log::info!("cell @ {},{} => {:?}", x, y, std::mem::discriminant(cell));
+                match cell {
+                    GridCell::DeviceRoot(device) => {
+                        device.ty.make_lasers(x as i32, y as i32, &mut self.lasers);
+                        while laser_len < self.lasers.len() {
+                            self.extend_laser_h(laser_len);
+                            laser_len += 1;
+                        }
+                    },
+                    _ => {}
+                }
             }
         }
     }
@@ -254,6 +324,7 @@ impl ponygame::Gameplay for GameplayLogic {
         let mut level = Level::new(40, 40);
         level.try_place(0, 0, DeviceTy::Mix);
         level.try_place(1, 1, DeviceTy::Mix);
+        level.try_place(5, 2, DeviceTy::Mix);
 
         GameplayLogic {
             assets,
@@ -267,6 +338,8 @@ impl ponygame::Gameplay for GameplayLogic {
 
         self.theta += 0.1;
         self.tweak_scene(engine);
+
+        self.level.build_lasers();
 
         engine.main_world.clear_meshes();
         self.level.build_meshes(engine, &self.assets);
