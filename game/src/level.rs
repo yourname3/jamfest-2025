@@ -196,6 +196,11 @@ impl Level {
         const WALL_B : u32 = 33;
         const WALL_BR: u32 = 34;
 
+        const WALL_BR_I: u32 = 48;
+        const WALL_BL_I: u32 = 50;
+        const WALL_TR_I: u32 = 80;
+        const WALL_TL_I: u32 = 82;
+
         let map = load_level(map_path);
 
         let mut level = Level {
@@ -222,6 +227,11 @@ impl Level {
                         WALL_BL => Some((&assets.wall_bl, &assets.wall_mat)),
                         WALL_B  => Some((&assets.wall_b, &assets.wall_mat)),
                         WALL_BR => Some((&assets.wall_br, &assets.wall_mat)),
+
+                        WALL_BR_I => Some((&assets.wall_br_i, &assets.wall_mat)),
+                        WALL_BL_I => Some((&assets.wall_bl_i, &assets.wall_mat)),
+                        WALL_TR_I => Some((&assets.wall_tr_i, &assets.wall_mat)),
+                        WALL_TL_I => Some((&assets.wall_tl_i, &assets.wall_mat)),
 
                         FLOOR  => Some((&assets.floor_tile, &assets.floor_tile_mat)),
                         _ => None,

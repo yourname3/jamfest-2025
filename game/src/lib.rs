@@ -45,6 +45,12 @@ struct Assets {
     wall_bl: Gp<Mesh>,
     wall_b: Gp<Mesh>,
     wall_br: Gp<Mesh>,
+
+    wall_tl_i: Gp<Mesh>,
+    wall_tr_i: Gp<Mesh>,
+    wall_bl_i: Gp<Mesh>,
+    wall_br_i: Gp<Mesh>,
+
     wall_mat: Gp<PBRMaterial>,
 
     sfx0: Sound,
@@ -135,7 +141,9 @@ impl Assets {
         let [
             wall_tl, wall_t, wall_tr,
             wall_l, wall_r,
-            wall_bl, wall_b, wall_br
+            wall_bl, wall_b, wall_br,
+
+            wall_tl_i, wall_tr_i, wall_bl_i, wall_br_i,
         ] = import_mesh_set_as_gc(engine, include_bytes!("./assets/walls.glb"), &[
             "wall-tl",
             "wall-t",
@@ -144,7 +152,8 @@ impl Assets {
             "wall-r",
             "wall-bl",
             "wall-b",
-            "wall-br"
+            "wall-br",
+            "wall-tl-i", "wall-tr-i", "wall-bl-i", "wall-br-i",
         ]).unwrap();
 
         Assets {
@@ -199,6 +208,10 @@ impl Assets {
             wall_bl,
             wall_b,
             wall_br,
+            wall_tl_i,
+            wall_tr_i,
+            wall_bl_i,
+            wall_br_i,
             wall_mat: Gp::new(PBRMaterial {
                 albedo_texture: metal_046_a.clone(),
                 metallic_roughness_texture: metal_046_m.clone(),
