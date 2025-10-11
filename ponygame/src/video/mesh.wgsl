@@ -32,6 +32,7 @@ struct Light {
 
 struct ModelUniform {
     transform: mat4x4f,
+    modulate: vec4f,
 }
 
 // Future group layout:
@@ -352,7 +353,7 @@ fn pbr_default(in: VertexOutput) -> PBROut {
         base_color *= albedo_tex;
     }
 
-    out.albedo = base_color;
+    out.albedo = base_color * model.modulate.rgb;
     
     out.roughness = clamp(perceptual_roughness * perceptual_roughness, 0.01, 1.0);
 

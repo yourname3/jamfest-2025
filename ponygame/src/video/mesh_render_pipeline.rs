@@ -2,6 +2,7 @@
 use std::cell::Cell;
 
 use bytemuck::Zeroable;
+use cgmath::{vec4, Vector4};
 
 use crate::{gc::Gp, video::{asset_import::{import_binary_data, MeshData}, camera::Camera, hdr_tonemap::HdrTonemapPipeline, texture::{self, Texture}, IndexBuffer, PBRMaterial, RenderCtx, UniformBuffer, VertexBuffer}};
 
@@ -42,12 +43,15 @@ pub struct Mesh {
 #[repr(C)]
 #[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct MeshInstanceUniform {
-    transform: [[f32; 4]; 4]
+    transform: [[f32; 4]; 4],
+    modulate: [f32; 4],
 }
 
 pub struct MeshInstance {
     mesh: Gp<Mesh>,
     pub material: Gp<PBRMaterial>,
+
+    pub modulate: cgmath::Vector4<f32>,
 
     pub transform: Cell<cgmath::Matrix4<f32>>,
 
@@ -61,6 +65,10 @@ pub struct MeshInstance {
 
 impl MeshInstance {
     pub fn new(ctx: &RenderCtx, mesh: Gp<Mesh>, material: Gp<PBRMaterial>, transform: cgmath::Matrix4<f32>) -> Self {
+        Self::new_modulate(ctx, mesh, material, transform, vec4(1.0, 1.0, 1.0, 1.0))
+    }
+
+    pub fn new_modulate(ctx: &RenderCtx, mesh: Gp<Mesh>, material: Gp<PBRMaterial>, transform: cgmath::Matrix4<f32>, modulate: Vector4<f32>) -> Self {
         let uniform_buffer = ctx.create_uniform_buffer_init_zero::<MeshInstanceUniform>("MeshInstance::uniform_buffer");
         
         let instance_bind_group = ctx.device.create_bind_group(&wgpu::BindGroupDescriptor {
@@ -78,6 +86,8 @@ impl MeshInstance {
             mesh,
             material,
 
+            modulate,
+
             transform: Cell::new(transform),
 
             uniform_buffer,
@@ -90,7 +100,8 @@ impl MeshInstance {
 
     pub fn update(&self, ctx: &RenderCtx) {
         let uniform = MeshInstanceUniform {
-            transform: self.transform.get().into()
+            transform: self.transform.get().into(),
+            modulate: self.modulate.into(),
         };
         ctx.queue.write_buffer(&self.uniform_buffer.0, 0, bytemuck::cast_slice(&[uniform]));
     }

@@ -11,28 +11,28 @@ use ponygame::log;
 use ponygame::video::camera::CameraProjection;
 use ponygame::video::{PBRShader, RenderCtx};
 use ponygame::{audio::Sound, gc::{Gp, GpMaybe}, video::{asset_import::import_binary_data, mesh_render_pipeline::{Mesh, MeshInstance}, texture::Texture, PBRMaterial}, PonyGame};
-use tiled::{LayerTile, Loader, ResourceReader};
+use tiled::{LayerTile, Loader, PropertyValue, ResourceReader};
 
 use crate::Assets;
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 pub enum DeviceTy {
     Mix,
-    Emitter,
+    Emitter(LaserValue),
 }
 
 impl DeviceTy {
     pub fn get_cells(&self) -> &'static [(i32, i32)] {
         match self {
             DeviceTy::Mix => &[(0, 0), (0, 1)],
-            DeviceTy::Emitter => &[(0, 0)],
+            DeviceTy::Emitter(_) => &[(0, 0)],
         }
     }
 
     pub fn mk_mesh_instance(&self, engine: &PonyGame, assets: &Assets, transform: cgmath::Matrix4<f32>) -> Gp<MeshInstance> {
         let (mesh, mat) = match self {
             DeviceTy::Mix => (&assets.node_mix, &assets.node_mix_mat),
-            DeviceTy::Emitter => (&assets.emitter, &assets.emitter_mat),
+            DeviceTy::Emitter(_) => (&assets.emitter, &assets.emitter_mat),
         };
         Gp::new(MeshInstance::new(
             engine.render_ctx(),
@@ -48,8 +48,8 @@ impl DeviceTy {
                 let laser = Laser { x, y: y + 1, length: 0, value: LaserValue { color: vec3(1.0, 0.0, 0.0) } };
                 lasers.push(laser);
             },
-            DeviceTy::Emitter => {
-                let laser = Laser { x, y, length: 0, value: LaserValue { color: vec3(1.0, 0.0, 0.0) } };
+            DeviceTy::Emitter(value) => {
+                let laser = Laser { x, y, length: 0, value: value.clone() };
                 lasers.push(laser);
             }
         }
@@ -79,9 +79,15 @@ impl Default for GridCell {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct LaserValue {
     pub color: Vector3<f32>,
+}
+
+impl LaserValue {
+    pub fn color(color: Vector3<f32>) -> Self {
+        LaserValue { color }
+    }
 }
 
 pub struct Laser {
@@ -252,9 +258,16 @@ impl Level {
             log::info!("object @ {}, {} => {}", obj.x, obj.y, id);
             match id {
                 EMITTER => {
+                    let color = match obj.properties.get("color") {
+                        Some(PropertyValue::ColorValue(color)) => {
+                            vec3(color.red as f32 / 255.0, color.green as f32 / 255.0, color.blue as f32 / 255.0)
+                        },
+                        _ => vec3(1.0, 1.0, 1.0)
+                    };
                     // Use force place because level objects can be overlapping
                     // the void / the partial-void.
-                    level.force_place((obj.x / 32.0) as i32,( obj.y / 32.0) as i32, DeviceTy::Emitter);
+                    level.force_place((obj.x / 32.0) as i32,( obj.y / 32.0) as i32,
+                        DeviceTy::Emitter(LaserValue::color(color)));
                 },
                 _ => {}
             }
@@ -284,11 +297,11 @@ impl Level {
     }
 
     fn force_place(&mut self, x: i32, y: i32, ty: DeviceTy) {
-        let device = Gp::new(Device {
-            x, y, ty
-        });
-
         log::info!("placed {:?} @ {},{}", ty, x, y);
+
+        let device = Gp::new(Device {
+            x, y, ty: ty.clone()
+        });
 
         for cell in ty.get_cells() {
             *self.grid.get_mut((y + cell.1) as usize, (x + cell.0) as usize).unwrap() = 
@@ -323,8 +336,10 @@ impl Level {
             engine.main_world.push_mesh(assets.laser(engine.render_ctx(),
                 // Add a horizontal offset of 0.5 so that the laser is good. 
                 Matrix4::from_translation(vec3(laser.x as f32 + 0.5, 0.0, laser.y as f32))
-                * Matrix4::from_nonuniform_scale(laser.length as f32, 1.0, 1.0
-            )))
+                * Matrix4::from_nonuniform_scale(laser.length as f32, 1.0, 1.0),
+
+                laser.value.color
+            ))
         }
 
         for mesh in &self.floor_meshes {

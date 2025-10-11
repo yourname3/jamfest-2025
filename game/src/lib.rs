@@ -235,11 +235,11 @@ impl Assets {
             transform))
     }
 
-    fn laser(&self, ctx: &RenderCtx, transform: cgmath::Matrix4<f32>) -> Gp<MeshInstance> {
-        Gp::new(MeshInstance::new(ctx,
+    fn laser(&self, ctx: &RenderCtx, transform: cgmath::Matrix4<f32>, color: Vector3<f32>) -> Gp<MeshInstance> {
+        Gp::new(MeshInstance::new_modulate(ctx,
             self.laser.clone(),
             self.laser_mat.clone(),
-            transform))
+            transform, color.extend(1.0)))
     }
 }
 
@@ -291,8 +291,6 @@ impl ponygame::Gameplay for GameplayLogic {
         });
 
         let mut level = Level::new_from_map("./levels/test.tmx", engine, &assets);
-        level.try_place(0, 2, DeviceTy::Emitter);
-        level.try_place(5, 2, DeviceTy::Mix);
 
         let selector = Selector::new(ctx, &assets);
 
