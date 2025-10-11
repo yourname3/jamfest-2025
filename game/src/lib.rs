@@ -1,3 +1,5 @@
+use std::f32::consts::PI;
+
 use inline_tweak::tweak;
 use ponygame::game;
 // /
@@ -146,9 +148,14 @@ impl ponygame::Gameplay for GameplayLogic {
             engine.main_world.push_mesh(assets.node_mix(ctx,
                 Matrix4::from_translation(vec3(0.0, 0.0, i as f32 * 2.0)
             )));
+
+            engine.main_world.push_mesh(assets.laser(ctx,
+            Matrix4::from_translation(vec3(0.5, 0.3, -0.5 + i as f32 * 2.0))
+                * Matrix4::from_angle_y(cgmath::Rad(PI))
+                * Matrix4::from_nonuniform_scale(10.0, 1.0, 1.0)
+            ));
         }
-        engine.main_world.push_mesh(assets.laser(ctx,
-            Matrix4::identity()));
+        
 
         engine.main_camera.position.set(point3(0.0, 15.0, 3.0));
         engine.main_camera.target.set(point3(0.0, 0.0, 0.0));
