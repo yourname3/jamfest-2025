@@ -32,6 +32,9 @@ struct Assets {
     floor_tile: Gp<Mesh>,
     floor_tile_mat: Gp<PBRMaterial>,
 
+    wall_side: Gp<Mesh>,
+    wall_mat: Gp<PBRMaterial>,
+
     sfx0: Sound,
 }
 
@@ -127,6 +130,7 @@ gc!(Device, 0x00080000_u64);
 
 enum GridCell {
     Empty,
+    Wall,
     DeviceRoot(Gp<Device>),
     DeviceEtc(Gp<Device>),
 }
@@ -160,15 +164,36 @@ impl Level {
     /// Shouldl be called once, to instantiate all the floor meshes.
     fn build_floor_meshes(&mut self, engine: &PonyGame, assets: &Assets) {
         // For now, just put one every spot on the grid...?
-        for ((y, x), _) in self.grid.indexed_iter() {
+        for ((y, x), cell) in self.grid.indexed_iter() {
+            let (mesh, mat) = match cell {
+                GridCell::Wall => (&assets.wall_side, &assets.wall_mat),
+                _ => (&assets.floor_tile, &assets.floor_tile_mat)
+            };
+
             let instance = Gp::new(MeshInstance::new(
                 engine.render_ctx(),
-                assets.floor_tile.clone(),
-                assets.floor_tile_mat.clone(),
+                mesh.clone(),
+                mat.clone(),
                 Matrix4::from_translation(vec3(x as f32, 0.0, y as f32))
             ));
             //log::info!("instantiate floor mesh @ {},{}", x, y);
             self.floor_meshes.push(instance);
+        }
+    }
+
+    fn build_debug_border(&mut self) {
+        for cell in self.grid.iter_row_mut(0) {
+            *cell = GridCell::Wall;
+        }
+        for cell in self.grid.iter_row_mut(self.grid.rows() - 1) {
+            *cell = GridCell::Wall;
+        }
+
+        for cell in self.grid.iter_col_mut(0) {
+            *cell = GridCell::Wall;
+        }
+        for cell in self.grid.iter_col_mut(self.grid.cols() - 1) {
+            *cell = GridCell::Wall;
         }
     }
 
@@ -181,6 +206,7 @@ impl Level {
             h_laser_ends: Grid::new_with_order(height, width, grid::Order::ColumnMajor),
         };
 
+        level.build_debug_border();
         level.build_floor_meshes(engine, assets);
 
         level
@@ -316,6 +342,9 @@ impl Assets {
         let metal_031_a = texture_linear!(ctx, "./assets/mat/metal_031/albedo.png");
         let metal_031_m = texture_linear!(ctx, "./assets/mat/metal_031/pbr.png");
 
+        let metal_046_a = texture_linear!(ctx, "./assets/mat/metal_046/albedo.png");
+        let metal_046_m = texture_linear!(ctx, "./assets/mat/metal_046/pbr.png");
+
         Assets {
             horse_mesh: mesh!(ctx, "../test/horse.glb"),
             horse_material: Gp::new(PBRMaterial {
@@ -355,8 +384,14 @@ impl Assets {
 
             floor_tile: mesh!(ctx, "./assets/floor_tile.glb"),
             floor_tile_mat: Gp::new(PBRMaterial {
-                albedo_texture: metal_031_a.clone(),
-                metallic_roughness_texture: metal_031_m.clone(),
+                albedo_texture: metal_046_a.clone(),
+                metallic_roughness_texture: metal_046_m.clone(),
+                ..PBRMaterial::default(ctx)
+            }),
+
+            wall_side: mesh!(ctx, "./assets/wall/wall_side.glb"),
+            wall_mat: Gp::new(PBRMaterial {
+                shader: Gp::new(PBRShader::new(ctx, "select.wgsl", include_str!("./shaders/select.wgsl"))),
                 ..PBRMaterial::default(ctx)
             }),
 
