@@ -113,7 +113,7 @@ impl Level {
         if y as usize >= self.grid.rows() { return false; }
 
         // Safety: We've confirmed they're positive.
-        return matches!(self.grid.get(x as usize, y as usize).unwrap(), GridCell::Empty);
+        return matches!(self.grid.get(y as usize, x as usize).unwrap(), GridCell::Empty);
     }
 
     pub fn try_place(&mut self, x: i32, y: i32, ty: DeviceTy) {
@@ -164,6 +164,8 @@ impl Level {
             self.lasers[idx].length += 1;
             x += 1;
         }
+        // Minimum length is 1??
+        self.lasers[idx].length += 1;
 
         *self.h_laser_ends.get_mut(y, x - 1).unwrap() = Some(self.lasers[idx].value.clone());
     }
@@ -311,7 +313,7 @@ impl ponygame::Gameplay for GameplayLogic {
 
         engine.main_world.set_envmap(&Gp::new(Texture::from_bytes_rgba16unorm(ctx,
             //include_bytes!("./assets/envmap_1k.exr"),
-            include_bytes!("./assets/preller_drive_1k.exr"),
+            include_bytes!("./assets/horn-koppe_spring_1k.exr"),
             Some("horn-koppe_spring_1k.exr"),
             true).unwrap()));
 
