@@ -5,7 +5,7 @@ use ponygame::cgmath::{point3, vec3, Matrix4, SquareMatrix};
 use ponygame::cgmath;
 use ponygame::log;
 
-use ponygame::video::RenderCtx;
+use ponygame::video::{PBRShader, RenderCtx};
 use ponygame::{audio::Sound, gc::{Gp, GpMaybe}, video::{asset_import::import_binary_data, mesh_render_pipeline::{Mesh, MeshInstance}, texture::Texture, PBRMaterial}, PonyGame};
 
 struct Assets {
@@ -81,6 +81,7 @@ impl Assets {
 
             laser: mesh!(ctx, "./assets/laser.glb"),
             laser_mat: Gp::new(PBRMaterial {
+                shader: Gp::new(PBRShader::new(ctx, "laser.wgsl", include_str!("./shaders/laser.wgsl"))),
                 ..PBRMaterial::default(ctx)
             }),
 
@@ -92,6 +93,13 @@ impl Assets {
         Gp::new(MeshInstance::new(ctx,
             self.node_mix.clone(),
             self.node_mix_mat.clone(),
+            transform))
+    }
+
+    fn laser(&self, ctx: &RenderCtx, transform: cgmath::Matrix4<f32>) -> Gp<MeshInstance> {
+        Gp::new(MeshInstance::new(ctx,
+            self.laser.clone(),
+            self.laser_mat.clone(),
             transform))
     }
 }
@@ -139,6 +147,8 @@ impl ponygame::Gameplay for GameplayLogic {
                 Matrix4::from_translation(vec3(0.0, 0.0, i as f32 * 2.0)
             )));
         }
+        engine.main_world.push_mesh(assets.laser(ctx,
+            Matrix4::identity()));
 
         engine.main_camera.position.set(point3(0.0, 15.0, 3.0));
         engine.main_camera.target.set(point3(0.0, 0.0, 0.0));

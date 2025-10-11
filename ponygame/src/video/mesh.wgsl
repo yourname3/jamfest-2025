@@ -304,8 +304,26 @@ fn pbr_main(in: VertexOutput) -> @location(0) vec4f {
     return vec4f(sum, 1.0);
 }
 
-fn pbr_default(in: VertexOutput) -> PBROut {
+/// Handles basic PBR setup, mainly setting up default values (e.g. 0.5 reflectance)
+/// and normal mapping.
+fn pbr_basic(in: VertexOutput) -> PBROut {
     var out: PBROut;
+    out.albedo = vec3f(1.0);
+    out.metallic = 0.0;
+    out.roughness = 0.0;
+    out.reflectance = 0.5;
+    out.emission = vec3f(0.0);
+
+    out.normal = normalize(in.f_normal);
+    if false {
+        // compute normal based on eye-space tangent, bitangent, normal
+    }
+
+    return out;
+}
+
+fn pbr_default(in: VertexOutput) -> PBROut {
+    var out: PBROut = pbr_basic(in);
 
     let albedo_decal = textureSample(albedo_decal_t, pbr_s, in.uv2);
 
@@ -337,11 +355,6 @@ fn pbr_default(in: VertexOutput) -> PBROut {
     out.albedo = base_color;
     
     out.roughness = clamp(perceptual_roughness * perceptual_roughness, 0.01, 1.0);
-
-    out.normal = normalize(in.f_normal);
-    if false {
-        // compute normal based on eye-space tangent, bitangent, normal
-    }
 
     return out;
 }
