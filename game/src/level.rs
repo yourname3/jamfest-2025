@@ -201,6 +201,8 @@ impl Level {
         const WALL_TR_I: u32 = 80;
         const WALL_TL_I: u32 = 82;
 
+        const EMITTER: u32 = 3;
+
         let map = load_level(map_path);
 
         let mut level = Level {
@@ -244,6 +246,20 @@ impl Level {
             }
         }
 
+        let objects = map.get_layer(1).unwrap().as_object_layer().unwrap();
+        for obj in objects.objects() {
+            let id = obj.get_tile().unwrap().id();
+            log::info!("object @ {}, {} => {}", obj.x, obj.y, id);
+            match id {
+                EMITTER => {
+                    // Use force place because level objects can be overlapping
+                    // the void / the partial-void.
+                    level.force_place((obj.x / 32.0) as i32,( obj.y / 32.0) as i32, DeviceTy::Emitter);
+                },
+                _ => {}
+            }
+        }
+
         //level.build_floor_meshes(engine, assets);
 
         level
@@ -258,6 +274,29 @@ impl Level {
         return matches!(self.grid.get(y as usize, x as usize).unwrap(), GridCell::Empty);
     }
 
+    pub fn is_in_bounds_and_laser_travelable(&self, x: i32, y: i32) -> bool {
+        if x < 0 || y < 0 { return false; }
+        if x as usize >= self.grid.cols() { return false; }
+        if y as usize >= self.grid.rows() { return false; }
+
+        // Safety: We've confirmed they're positive.
+        return matches!(self.grid.get(y as usize, x as usize).unwrap(), GridCell::Empty | GridCell::Void);
+    }
+
+    fn force_place(&mut self, x: i32, y: i32, ty: DeviceTy) {
+        let device = Gp::new(Device {
+            x, y, ty
+        });
+
+        log::info!("placed {:?} @ {},{}", ty, x, y);
+
+        for cell in ty.get_cells() {
+            *self.grid.get_mut((y + cell.1) as usize, (x + cell.0) as usize).unwrap() = 
+                if matches!(cell, (0, 0)) { GridCell::DeviceRoot(device.clone()) } 
+                else { GridCell::DeviceEtc(device.clone()) };
+        }
+    }
+
     pub fn try_place(&mut self, x: i32, y: i32, ty: DeviceTy) {
         for cell in ty.get_cells() {
             if !self.is_in_bounds_and_empty(y + cell.1, x + cell.0) {
@@ -265,17 +304,7 @@ impl Level {
             }
         }
 
-        let device = Gp::new(Device {
-            x, y, ty
-        });
-
-        //log::info!("placed {:?} @ {},{}", ty, x, y);
-
-        for cell in ty.get_cells() {
-            *self.grid.get_mut((y + cell.1) as usize, (x + cell.0) as usize).unwrap() = 
-                if matches!(cell, (0, 0)) { GridCell::DeviceRoot(device.clone()) } 
-                else { GridCell::DeviceEtc(device.clone()) };
-        }
+        self.force_place(x, y, ty);
     }
 
     pub fn build_meshes(&mut self, engine: &mut PonyGame, assets: &Assets) {
@@ -306,7 +335,7 @@ impl Level {
     pub fn extend_laser_h(&mut self, idx: usize) {
         let Laser { mut x, y, .. } = self.lasers[idx];
         x += 1;
-        while self.is_in_bounds_and_empty(x, y) {
+        while self.is_in_bounds_and_laser_travelable(x, y) {
             self.lasers[idx].length += 1;
             x += 1;
         }
