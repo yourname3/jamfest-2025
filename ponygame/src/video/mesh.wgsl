@@ -260,50 +260,27 @@ fn BRDF_envmap(bin_immut: BrdfIn) -> vec3f {
     return Fd + Fr;
 }
 
+struct PBROut {
+    albedo: vec3f,
+    metallic: f32,
+    roughness: f32,
+    reflectance: f32,
+    emission: vec3f,
+
+    normal: vec3f,
+}
+
 @fragment
 fn pbr_main(in: VertexOutput) -> @location(0) vec4f {
-    let albedo_decal = textureSample(albedo_decal_t, pbr_s, in.uv2);
-
-    var metallic = pbr.metallic;
-    var perceptual_roughness = pbr.roughness;
-    // TODO: Should this be gated behind a flag? Is the dummy texture lookup
-    // slow enough?
-    if true {
-        var data = textureSample(metallic_rough_t, pbr_s, in.uv);
-        
-        if albedo_decal.a > 0 {
-            let data2 = textureSample(metallic_rough_decal_t, pbr_s, in.uv2);
-            data = mix(data, data2, albedo_decal.a);
-        }
-        // Compute based on textures
-        metallic *= data.b;
-        perceptual_roughness *= data.g;
-    }
-
-    var reflectance = pbr.reflectance;
-
-    var base_color = vec3(1.0, 1.0, 1.0);
-    if true {
-        var albedo_tex = textureSample(albedo_t, pbr_s, in.uv).rgb;
-        albedo_tex = mix(albedo_tex, albedo_decal.rgb, albedo_decal.a);
-        base_color *= albedo_tex;
-    }
-
-    var diffuse_color = (1.0 - metallic) * base_color;
-    var f0 = vec3f(0.16 * reflectance * reflectance * (1.0 - metallic)) + base_color * metallic;
-    var roughness = clamp(perceptual_roughness * perceptual_roughness, 0.01, 1.0);
-
-    var normal = normalize(in.f_normal);
-    if false {
-        // compute normal based on eye-space tangent, bitangent, normal
-    }
+    let param = pbr_fn(in);
+    let f0 = vec3f(0.16 * param.reflectance * param.reflectance * (1.0 - param.metallic)) + param.albedo * param.metallic;
 
     var bin: BrdfIn;
-    bin.diffuse_color = diffuse_color;
+    bin.diffuse_color = (1.0 - param.metallic) * param.albedo;
     bin.f0 = f0;
-    bin.roughness = roughness;
+    bin.roughness = param.roughness;
     bin.v = -normalize(in.f_pos);
-    bin.n = normal;
+    bin.n = param.normal;
 
     var sum = vec3(0.0);
     for(var i = 0; i < 1; i += 1) {
@@ -319,12 +296,52 @@ fn pbr_main(in: VertexOutput) -> @location(0) vec4f {
         sum += BRDF_envmap(bin);
     }
 
-    if false {
-        // emission
-    }
+    sum += param.emission;
 
     // TODO: Instead of clamping here, write to an HDR texture
     // then tonemap
     //return vec4f(clamp(sum, vec3f(0.0), vec3f(1.0)), 1.0);
     return vec4f(sum, 1.0);
+}
+
+fn pbr_default(in: VertexOutput) -> PBROut {
+    var out: PBROut;
+
+    let albedo_decal = textureSample(albedo_decal_t, pbr_s, in.uv2);
+
+    out.metallic = pbr.metallic;
+    var perceptual_roughness = pbr.roughness;
+    // TODO: Should this be gated behind a flag? Is the dummy texture lookup
+    // slow enough?
+    if true {
+        var data = textureSample(metallic_rough_t, pbr_s, in.uv);
+        
+        if albedo_decal.a > 0 {
+            let data2 = textureSample(metallic_rough_decal_t, pbr_s, in.uv2);
+            data = mix(data, data2, albedo_decal.a);
+        }
+        // Compute based on textures
+        out.metallic *= data.b;
+        perceptual_roughness *= data.g;
+    }
+
+    var reflectance = pbr.reflectance;
+
+    var base_color = vec3(1.0, 1.0, 1.0);
+    if true {
+        var albedo_tex = textureSample(albedo_t, pbr_s, in.uv).rgb;
+        albedo_tex = mix(albedo_tex, albedo_decal.rgb, albedo_decal.a);
+        base_color *= albedo_tex;
+    }
+
+    out.albedo = base_color;
+    
+    out.roughness = clamp(perceptual_roughness * perceptual_roughness, 0.01, 1.0);
+
+    out.normal = normalize(in.f_normal);
+    if false {
+        // compute normal based on eye-space tangent, bitangent, normal
+    }
+
+    return out;
 }

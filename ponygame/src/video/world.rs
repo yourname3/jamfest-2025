@@ -286,9 +286,13 @@ impl Viewport {
             
             renderer.sky.render(&mut world_render_pass);
 
-            renderer.mesh_renderer.bind(&mut world_render_pass);
+           // renderer.mesh_renderer.bind(&mut world_render_pass);
             for mesh in self.world.meshes.borrow().iter() {
-                renderer.mesh_renderer.render(&renderer.ctx, &mut world_render_pass, &mesh);
+                let shader = &mesh.material.shader;
+                // TODO: Reduce number of calls to bind(), either by sorting, or
+                // maybe by an extra check for which shader is already bound?
+                shader.bind(&mut world_render_pass);
+                shader.render(&renderer.ctx, &mut world_render_pass, &mesh);
             }
             //renderer.mesh_renderer.render(&mut world_render_pass, &renderer.ctx.queue);
         }

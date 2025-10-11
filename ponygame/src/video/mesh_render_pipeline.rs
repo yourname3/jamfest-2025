@@ -47,7 +47,7 @@ pub struct MeshInstanceUniform {
 
 pub struct MeshInstance {
     mesh: Gp<Mesh>,
-    material: Gp<PBRMaterial>,
+    pub material: Gp<PBRMaterial>,
 
     pub transform: Cell<cgmath::Matrix4<f32>>,
 
@@ -96,8 +96,8 @@ impl MeshInstance {
     }
 }
 
-pub struct MeshRenderPipeline {
-    pipeline: wgpu::RenderPipeline,
+pub struct PBRShader {
+    pipeline: wgpu::RenderPipeline,   
 }
 
 impl Mesh {
@@ -115,12 +115,18 @@ impl Mesh {
     }
 }
 
-impl MeshRenderPipeline {
-    pub fn new(ctx: &RenderCtx) -> Self {
-        let shader = ctx.device.create_shader_module(wgpu::include_wgsl!("mesh.wgsl"));
+impl PBRShader {
+    pub fn new(ctx: &RenderCtx, label: &str, pbr_fn: &str) -> Self {
+        let mut whole_shader = include_str!("mesh.wgsl").to_string();
+        whole_shader.push_str(pbr_fn);
+
+        let shader = ctx.device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: Some(label),
+            source: wgpu::ShaderSource::Wgsl(whole_shader.into()),
+        });
 
         let layout = ctx.device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-            label: Some("MeshRenderPipeline::layout"),
+            label: Some("PBRShader::layout"),
             bind_group_layouts: &[
                 &ctx.layouts.world,
                 &ctx.layouts.pbr_material,
@@ -130,7 +136,7 @@ impl MeshRenderPipeline {
         });
 
         let pipeline = ctx.device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-            label: Some("MeshRenderPipeline::pipeline"),
+            label: Some("PBRShader::pipeline"),
             layout: Some(&layout),
             vertex: wgpu::VertexState {
                 module: &shader,
@@ -178,7 +184,7 @@ impl MeshRenderPipeline {
             cache: None
         });
 
-        MeshRenderPipeline {
+        PBRShader {
             pipeline,
         }
     }

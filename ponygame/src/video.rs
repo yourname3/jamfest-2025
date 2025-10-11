@@ -6,14 +6,14 @@ pub mod hdr_tonemap;
 pub mod camera;
 pub mod world;
 
-use std::{cell::{Cell, RefCell}, collections::HashMap, rc::Rc};
+use std::{cell::{Cell, RefCell}, collections::HashMap, mem::MaybeUninit, rc::Rc};
 use cgmath::vec3;
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 
 use wgpu::util::DeviceExt;
 use winit::{dpi::{PhysicalSize, Size}, event::WindowEvent, event_loop::{ActiveEventLoop, EventLoopProxy}, window::{WindowAttributes, WindowId}};
 
-use crate::{gc::{Gp, GpMaybe}, video::{camera::Camera, hdr_tonemap::HdrTonemapPipeline, mesh_render_pipeline::MeshRenderPipeline, sky_pipeline::SkyPipeline, texture::{DepthTexture, Texture}, world::{Viewport, World}}, PonyGame, PonyGameAppEvent};
+use crate::{gc::{Gp, GpMaybe}, video::{camera::Camera, hdr_tonemap::HdrTonemapPipeline, sky_pipeline::SkyPipeline, texture::{DepthTexture, Texture}, world::{Viewport, World}}, PonyGame, PonyGameAppEvent};
 
 // Bundles together all the global state that a given part of the renderer might
 // need, i.e. the device, queue, etc.
@@ -27,6 +27,10 @@ pub struct RenderCtx {
     pub layouts: Layouts,
     
     pub samplers: Samplers,
+
+    // TODO: Maybe move this to Renderer, make most things take Renderer instead
+    // of RenderCtx?
+    pub shaders: MaybeUninit<Shaders>,
 }
 
 pub struct UniformBuffer(pub wgpu::Buffer);
@@ -34,6 +38,11 @@ pub struct VertexBuffer(pub wgpu::Buffer);
 pub struct IndexBuffer(pub wgpu::Buffer);
 
 impl RenderCtx {
+    pub fn shaders(&self) -> &Shaders {
+        // SAFETY: Just don't call this inside Shaders::new() smile
+        unsafe { self.shaders.assume_init_ref() }
+    }
+
     pub async fn new(initial_window: &winit::window::Window) -> (Self, wgpu::Surface<'static>) {
         let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
             // On WASM, we want to target both WebGPU and WebGL2, whatever is available.
@@ -95,7 +104,7 @@ impl RenderCtx {
         let layouts = Layouts::new(&device);
         let samplers = Samplers::new(&device);
 
-        let ctx = Self {
+        let mut ctx = Self {
             device,
             queue,
 
@@ -104,7 +113,10 @@ impl RenderCtx {
 
             layouts,
             samplers,
+            shaders: MaybeUninit::uninit(),
         };
+
+        ctx.shaders = MaybeUninit::new(Shaders::new(&ctx));
 
         (ctx, surface)
     }
@@ -157,7 +169,6 @@ impl RenderCtx {
 pub struct Renderer {
     pub ctx: RenderCtx,
 
-    pub mesh_renderer: MeshRenderPipeline,
     pub sky: SkyPipeline,
 }
 
@@ -261,6 +272,24 @@ struct Layouts {
     pipeline_world: wgpu::PipelineLayout,
 }
 
+struct Shaders {
+    pbr_default: Gp<PBRShader>,
+}
+
+impl Shaders {
+    pub fn new(ctx: &RenderCtx) -> Self {
+        let pbr_default = Gp::new(PBRShader::new(ctx, 
+            "Shaders::pbr_default", 
+            include_str!("video/mesh-default.wgsl")));
+
+        Shaders {
+            pbr_default,
+        }
+    }
+}
+
+pub use mesh_render_pipeline::PBRShader;
+
 pub struct PBRMaterial {
     pub albedo: cgmath::Vector3<f32>,
     pub metallic: f32,
@@ -279,6 +308,7 @@ pub struct PBRMaterial {
     pub metallic_roughness_decal_texture: Texture,
 
     pub cached_bind_group: GpMaybe<wgpu::BindGroup>,
+    pub shader: Gp<PBRShader>,
 }
 
 impl PBRMaterial {
@@ -295,6 +325,8 @@ impl PBRMaterial {
             albedo_decal_texture: Texture::dummy_transparent(ctx, Some("Texture::dummy::albedo")),
             metallic_roughness_decal_texture: Texture::dummy(ctx, Some("Texture::dummy::metallic_roughness")),
             cached_bind_group: GpMaybe::none(),
+
+            shader: ctx.shaders().pbr_default.clone(),
         }
     }
 }
@@ -593,13 +625,12 @@ impl Renderer {
         //
         // It should be the case that this pipeline is compatible with other
         // windows (?)
-        let mesh_renderer = MeshRenderPipeline::new(&ctx);
+        //let mesh_renderer = MeshRenderPipeline::new(&ctx);
         let sky = SkyPipeline::new(&ctx);
 
         let renderer = Renderer {
             ctx,
 
-            mesh_renderer,
             sky,
         };
 

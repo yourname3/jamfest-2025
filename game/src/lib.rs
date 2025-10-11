@@ -16,6 +16,9 @@ struct Assets {
     
     node_mix_mat: Gp<PBRMaterial>,
 
+    laser: Gp<Mesh>,
+    laser_mat: Gp<PBRMaterial>,
+
     sfx0: Sound,
 }
 
@@ -73,6 +76,11 @@ impl Assets {
                 albedo_texture: texture_srgb!(ctx, "./assets/mat/metal_046/albedo.png"),
                 metallic_roughness_texture: texture_linear!(ctx, "./assets/mat/metal_046/pbr.png"),
                 albedo_decal_texture: texture_srgb!(ctx, "./assets/label_mix.png"),
+                ..PBRMaterial::default(ctx)
+            }),
+
+            laser: mesh!(ctx, "./assets/laser.glb"),
+            laser_mat: Gp::new(PBRMaterial {
                 ..PBRMaterial::default(ctx)
             }),
 
