@@ -7,6 +7,7 @@ use ponygame::cgmath::{point3, vec3, Matrix4, SquareMatrix};
 use ponygame::cgmath;
 use ponygame::log;
 
+use ponygame::video::camera::CameraProjection;
 use ponygame::video::{PBRShader, RenderCtx};
 use ponygame::{audio::Sound, gc::{Gp, GpMaybe}, video::{asset_import::import_binary_data, mesh_render_pipeline::{Mesh, MeshInstance}, texture::Texture, PBRMaterial}, PonyGame};
 
@@ -155,10 +156,12 @@ impl ponygame::Gameplay for GameplayLogic {
                 * Matrix4::from_nonuniform_scale(10.0, 1.0, 1.0)
             ));
         }
-        
 
         engine.main_camera.position.set(point3(0.0, 15.0, 3.0));
         engine.main_camera.target.set(point3(0.0, 0.0, 0.0));
+        engine.main_camera.projection.set(CameraProjection::Orthographic {
+            zoom: 10.0,
+        });
 
         GameplayLogic {
             assets,
