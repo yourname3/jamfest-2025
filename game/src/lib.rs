@@ -29,6 +29,9 @@ struct Assets {
     select_vert_2: Gp<Mesh>,
     select_mat: Gp<PBRMaterial>,
 
+    floor_tile: Gp<Mesh>,
+    floor_tile_mat: Gp<PBRMaterial>,
+
     sfx0: Sound,
 }
 
@@ -147,19 +150,40 @@ struct Laser {
 }
 
 struct Level {
+    floor_meshes: Vec<Gp<MeshInstance>>,
     grid: Grid<GridCell>,
     lasers: Vec<Laser>,
     h_laser_ends: Grid<Option<LaserValue>>,
 }
 
 impl Level {
-    pub fn new(width: usize, height: usize) -> Level {
-        Level {
+    /// Shouldl be called once, to instantiate all the floor meshes.
+    fn build_floor_meshes(&mut self, engine: &PonyGame, assets: &Assets) {
+        // For now, just put one every spot on the grid...?
+        for ((y, x), _) in self.grid.indexed_iter() {
+            let instance = Gp::new(MeshInstance::new(
+                engine.render_ctx(),
+                assets.floor_tile.clone(),
+                assets.floor_tile_mat.clone(),
+                Matrix4::from_translation(vec3(x as f32, 0.0, y as f32))
+            ));
+            //log::info!("instantiate floor mesh @ {},{}", x, y);
+            self.floor_meshes.push(instance);
+        }
+    }
+
+    pub fn new(width: usize, height: usize, engine: &PonyGame, assets: &Assets) -> Level {
+        let mut level = Level {
             // Use column-major order so that when we iterate over 
+            floor_meshes: Vec::new(),
             grid: Grid::new_with_order(height, width, grid::Order::ColumnMajor),
             lasers: Vec::new(),
             h_laser_ends: Grid::new_with_order(height, width, grid::Order::ColumnMajor),
-        }
+        };
+
+        level.build_floor_meshes(engine, assets);
+
+        level
     }
 
     pub fn is_in_bounds_and_empty(&self, x: i32, y: i32) -> bool {
@@ -209,6 +233,10 @@ impl Level {
                 Matrix4::from_translation(vec3(laser.x as f32 + 0.5, 0.0, laser.y as f32))
                 * Matrix4::from_nonuniform_scale(laser.length as f32, 1.0, 1.0
             )))
+        }
+
+        for mesh in &self.floor_meshes {
+            engine.main_world.push_mesh(mesh.clone());
         }
     }
 
@@ -285,6 +313,9 @@ impl Assets {
     pub fn new(engine: &mut PonyGame) -> Self {
         let ctx = engine.render_ctx();
 
+        let metal_031_a = texture_linear!(ctx, "./assets/mat/metal_031/albedo.png");
+        let metal_031_m = texture_linear!(ctx, "./assets/mat/metal_031/pbr.png");
+
         Assets {
             horse_mesh: mesh!(ctx, "../test/horse.glb"),
             horse_material: Gp::new(PBRMaterial {
@@ -302,8 +333,8 @@ impl Assets {
                 roughness: 1.0,
                 reflectance: 0.5,
                 //albedo: vec3(0.5, 0.5, 0.5),
-                albedo_texture: texture_linear!(ctx, "./assets/mat/metal_031/albedo.png"),
-                metallic_roughness_texture: texture_linear!(ctx, "./assets/mat/metal_031/pbr.png"),
+                albedo_texture: metal_031_a.clone(),
+                metallic_roughness_texture: metal_031_m.clone(),
                 albedo_decal_texture: texture_srgb!(ctx, "./assets/label_mix.png"),
                 ..PBRMaterial::default(ctx)
             }),
@@ -319,6 +350,13 @@ impl Assets {
             select_vert_2: mesh!(ctx, "./assets/select_vert_2.glb"),
             select_mat: Gp::new(PBRMaterial {
                 shader: Gp::new(PBRShader::new(ctx, "select.wgsl", include_str!("./shaders/select.wgsl"))),
+                ..PBRMaterial::default(ctx)
+            }),
+
+            floor_tile: mesh!(ctx, "./assets/floor_tile.glb"),
+            floor_tile_mat: Gp::new(PBRMaterial {
+                albedo_texture: metal_031_a.clone(),
+                metallic_roughness_texture: metal_031_m.clone(),
                 ..PBRMaterial::default(ctx)
             }),
 
@@ -394,7 +432,7 @@ impl ponygame::Gameplay for GameplayLogic {
             zoom: 10.0,
         });
 
-        let mut level = Level::new(40, 40);
+        let mut level = Level::new(40, 40, engine, &assets);
         level.try_place(0, 2, DeviceTy::Emitter);
         level.try_place(5, 2, DeviceTy::Mix);
 
@@ -415,10 +453,6 @@ impl ponygame::Gameplay for GameplayLogic {
         self.tweak_scene(engine);
 
         self.level.build_lasers();
-
-        self.selector.x = 5;
-        self.selector.y = 2;
-        self.selector.state = SelectorState::Vert2;
 
         engine.main_world.clear_meshes();
         self.level.build_meshes(engine, &self.assets);
