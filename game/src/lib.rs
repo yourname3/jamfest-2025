@@ -41,6 +41,10 @@ struct Assets {
     metal_sfx: [Sound; 5],
     metal_pickup: Sound,
     metal_putdown: Sound,
+    move_err: Sound,
+
+    win: Sound,
+    click: Sound,
 
     node_ingot: Gp<Mesh>,
     node_mix2: Gp<Mesh>,
@@ -218,7 +222,10 @@ impl Selector {
             if valid {
                 use rand::seq::IndexedRandom;
                 let mut rng = rand::rng();
-                engine.audio.play(assets.metal_sfx.choose(&mut rng).unwrap());
+                engine.audio.play_speed(assets.metal_sfx.choose(&mut rng).unwrap(), rand::random_range(0.95..1.05));
+            }
+            else {
+                engine.audio.play_speed(&assets.move_err, rand::random_range(0.95..1.05));
             }
         }
 
@@ -469,6 +476,10 @@ impl Assets {
             ],
             metal_pickup: sfx!("./assets/metal_pickup.wav"),
             metal_putdown: sfx!("./assets/metal_putdown.wav"),
+            move_err: sfx!("./assets/move_err.wav"),
+
+            win: sfx!("./assets/win.wav"),
+            click: sfx!("./assets/click.wav"),
 
             node_mix: mesh!(ctx, "./assets/mix_node.glb"),
             node_mix_mat: lock_unlock!(ctx, lock_data, "./assets/label_mix.png"),
@@ -635,6 +646,10 @@ impl GameplayLogic {
             self.state = GameplayState::LevelSelect;
         }
     }
+
+    fn click(&mut self, engine: &mut PonyGame) {
+        engine.audio.play_speed(&self.assets.click, rand::random_range(0.95..1.05));
+    }
 }
 
 
@@ -698,9 +713,14 @@ impl ponygame::Gameplay for GameplayLogic {
         self.selector.update(engine, &self.assets, &mut self.level);
 
         // We won if we fulfilled all the goals and are not moving anything.
+        let had_won = self.has_won;
         self.has_won = (self.level.nr_goals_fulfilled >= self.level.nr_goals)
             && !self.selector.is_moving;
         log::info!("has won? {}", self.has_won);
+
+        if self.has_won && !had_won {
+            engine.audio.play(&self.assets.win);
+        }
 
         engine.main_world.clear_meshes();
         self.level.build_meshes(engine, &self.assets);
@@ -713,6 +733,8 @@ impl ponygame::Gameplay for GameplayLogic {
         //game.main_camera.position.set(point3(15.0 * f32::cos(self.theta), 15.0 * f32::sin(self.theta), 0.0));
     }
 
+    
+
     fn ui(&mut self, engine: &mut PonyGame, ctx: &egui::Context) {
         ctx.set_zoom_factor(4.0);
         match self.state {
@@ -723,6 +745,7 @@ impl ponygame::Gameplay for GameplayLogic {
                         ui.heading(format!("Level {}", self.cur_level_idx));
                         if ui.button("Quit").clicked() {
                             self.state = GameplayState::LevelSelect;
+                            self.click(engine);
                         }
                     });
 
@@ -738,9 +761,11 @@ impl ponygame::Gameplay for GameplayLogic {
                                     ui.heading("You Win!");
                                     if ui.button("Next Level").clicked() {
                                         self.open_level(engine, self.cur_level_idx + 1);
+                                        self.click(engine);
                                     }
                                     if ui.button("Quit").clicked() {
                                         self.state = GameplayState::LevelSelect;
+                                        self.click(engine);
                                     }
                                 });
                             
@@ -760,6 +785,7 @@ impl ponygame::Gameplay for GameplayLogic {
                             let label = format!("Level {}", nr);
                             if ui.button(label).clicked() {
                                 self.open_level(engine, nr - 1);
+                                self.click(engine);
                             }
 
                             nr += 1;
