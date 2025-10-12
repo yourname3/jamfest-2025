@@ -74,12 +74,12 @@ impl DeviceTy {
             DeviceTy::Hook => SelectorState::Vert2,
 
             DeviceTy::Ingot => SelectorState::Vert1,
-            DeviceTy::Mix2 => SelectorState::Vert1,
+            DeviceTy::Mix2 => SelectorState::OO,
             DeviceTy::Nut => SelectorState::Vert1,
             DeviceTy::Bolt => SelectorState::Vert1,
-            DeviceTy::Collect => SelectorState::Vert1,
-            DeviceTy::Swap => SelectorState::Vert1,
-            DeviceTy::Split => SelectorState::Vert1,
+            DeviceTy::Collect => SelectorState::V3,
+            DeviceTy::Swap => SelectorState::Swap,
+            DeviceTy::Split => SelectorState::OOO,
         }
     }
 

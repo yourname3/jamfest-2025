@@ -63,6 +63,12 @@ struct Assets {
 
     select_vert_1: Gp<Mesh>,
     select_vert_2: Gp<Mesh>,
+
+    select_swap: Gp<Mesh>,
+    select_o_o: Gp<Mesh>,
+    select_o_o_o: Gp<Mesh>,
+    select_v3: Gp<Mesh>,
+
     select_mat: Gp<PBRMaterial>,
 
     floor_tile: Gp<Mesh>,
@@ -96,11 +102,19 @@ enum SelectorState {
     None,
     Vert1,
     Vert2,
+    Swap,
+    OO,
+    OOO,
+    V3,
 }
 
 struct Selector {
     mesh_vert_1: Gp<MeshInstance>,
     mesh_vert_2: Gp<MeshInstance>,
+    mesh_swap: Gp<MeshInstance>,
+    mesh_o_o: Gp<MeshInstance>,
+    mesh_o_o_o: Gp<MeshInstance>,
+    mesh_v3: Gp<MeshInstance>,
 
     state: SelectorState,
     object: GpMaybe<Device>,
@@ -125,6 +139,10 @@ impl Selector {
         Selector {
             mesh_vert_1: Self::mk_mesh_instance(ctx, assets, &assets.select_vert_1),
             mesh_vert_2: Self::mk_mesh_instance(ctx, assets, &assets.select_vert_2),
+            mesh_swap: Self::mk_mesh_instance(ctx, assets, &assets.select_swap),
+            mesh_o_o: Self::mk_mesh_instance(ctx, assets, &assets.select_o_o),
+            mesh_o_o_o: Self::mk_mesh_instance(ctx, assets, &assets.select_o_o_o),
+            mesh_v3: Self::mk_mesh_instance(ctx, assets, &assets.select_v3),
             state: SelectorState::None,
             object: GpMaybe::none(),
             x: 0,
@@ -139,9 +157,13 @@ impl Selector {
 
     fn get_current_mesh(&self) -> Option<&Gp<MeshInstance>> {
         match self.state {
-            SelectorState::None => None,
+            SelectorState::None  => None,
             SelectorState::Vert1 => Some(&self.mesh_vert_1),
             SelectorState::Vert2 => Some(&self.mesh_vert_2),
+            SelectorState::Swap  => Some(&self.mesh_swap),
+            SelectorState::OO    => Some(&self.mesh_o_o),
+            SelectorState::OOO   => Some(&self.mesh_o_o_o),
+            SelectorState::V3    => Some(&self.mesh_v3),
         }
     }
 
@@ -376,6 +398,18 @@ impl Assets {
             "collect",
         ]).unwrap();
 
+        let [
+            select_swap,
+            select_o_o,
+            select_o_o_o,
+            select_v3,
+        ] = import_mesh_set_as_gc(engine, include_bytes!("./assets/selectors.glb"), &[
+            "select_swap",
+            "select_o_o",
+            "select_o_o_o",
+            "select_v3",
+        ]).unwrap();
+
         let laser_shader = Gp::new(PBRShader::new(ctx, "laser.wgsl", include_str!("./shaders/laser.wgsl")));
 
         Assets {
@@ -417,6 +451,12 @@ impl Assets {
 
             select_vert_1: mesh!(ctx, "./assets/select_vert_1.glb"),
             select_vert_2: mesh!(ctx, "./assets/select_vert_2.glb"),
+
+            select_swap,
+            select_o_o,
+            select_o_o_o,
+            select_v3,
+
             select_mat: Gp::new(PBRMaterial {
                 shader: Gp::new(PBRShader::new(ctx, "select.wgsl", include_str!("./shaders/select.wgsl"))),
                 ..PBRMaterial::default(ctx)
