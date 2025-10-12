@@ -2,6 +2,7 @@ use std::f32::consts::PI;
 
 mod level;
 
+use egui::Align2;
 use grid::Grid;
 use inline_tweak::tweak;
 use ponygame::cgmath::num_traits::pow;
@@ -557,6 +558,11 @@ impl Assets {
     }
 }
 
+enum GameplayState {
+    Level,
+    LevelSelect,
+    MainMenu,
+}
 
 pub struct GameplayLogic {
     theta: f32,
@@ -565,6 +571,10 @@ pub struct GameplayLogic {
     level: Level,
 
     selector: Selector,
+
+    has_won: bool,
+
+    state: GameplayState,
 }
 
 // meow
@@ -620,6 +630,8 @@ impl ponygame::Gameplay for GameplayLogic {
             theta: 0.0,
             level,
             selector,
+            has_won: false,
+            state: GameplayState::Level,
         }
     }
 
@@ -634,6 +646,11 @@ impl ponygame::Gameplay for GameplayLogic {
 
         self.selector.update(engine, &mut self.level);
 
+        // We won if we fulfilled all the goals and are not moving anything.
+        self.has_won = (self.level.nr_goals_fulfilled >= self.level.nr_goals)
+            && !self.selector.is_moving;
+        log::info!("has won? {}", self.has_won);
+
         engine.main_world.clear_meshes();
         self.level.build_meshes(engine, &self.assets);
         self.selector.push_mesh(engine);
@@ -646,14 +663,40 @@ impl ponygame::Gameplay for GameplayLogic {
     }
 
     fn ui(&mut self, ctx: &egui::Context) {
-        egui::Area::new(egui::Id::new("test"))
-            .fixed_pos((20.0, 20.0))
-            .show(ctx, |ui| {
-                ui.set_max_width(300.0);
-                ui.heading("Test UI");
+        match self.state {
+            GameplayState::Level => {
+                egui::Area::new(egui::Id::new("test"))
+                    .anchor(Align2::CENTER_CENTER, (0.0, 0.0))
+                    .show(ctx, |ui| {
+                        ui.set_max_width(300.0);
+                        if self.has_won {
+                            ui.heading("You Win!");
+                            if ui.button("Next Level").clicked() {
 
-                ui.button("Press This Button!");
-            });
+                            }
+                            if ui.button("Quit").clicked() {
+                                self.state = GameplayState::LevelSelect;
+                            }
+                        }
+                        //.heading("Test UI");
+
+                        //ui.button("Press This Button!");
+                    });
+            }
+
+            GameplayState::LevelSelect => {
+                egui::CentralPanel::default()
+                    .show(ctx, |ui| {
+                        ui.button("Level 1");
+                        ui.button("Level 2");
+                    });
+            }
+
+            GameplayState::MainMenu => {
+
+            }
+        }
+        
     }
 }
 

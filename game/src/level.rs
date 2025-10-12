@@ -6,7 +6,7 @@ use grid::Grid;
 use inline_tweak::tweak;
 use ponygame::{game, gc};
 // /
-use ponygame::cgmath::{point3, vec3, Matrix4, SquareMatrix, Vector3};
+use ponygame::cgmath::{point3, vec3, AbsDiffEq, Matrix4, SquareMatrix, Vector3};
 use ponygame::cgmath;
 use ponygame::log;
 
@@ -105,11 +105,12 @@ impl DeviceTy {
         ))
     }
 
-    pub fn make_lasers(&self, x: i32, y: i32, lasers: &mut Vec<Laser>, ends_h: &Grid<Option<LaserValue>>) {
+    // Returns whether this fulfilled a goal.
+    pub fn make_lasers(&self, x: i32, y: i32, lasers: &mut Vec<Laser>, ends_h: &Grid<Option<LaserValue>>) -> bool {
         match self {
             DeviceTy::Mix => {
-                let Some(Some(left)) = ends_h.get(y as usize, x as usize) else { return; };
-                let Some(Some(right)) = ends_h.get(y as usize + 1, x as usize) else { return; };
+                let Some(Some(left)) = ends_h.get(y as usize, x as usize) else { return false; };
+                let Some(Some(right)) = ends_h.get(y as usize + 1, x as usize) else { return false; };
 
                 let laser = Laser {
                     x, y: y + 1, length: 0,
@@ -122,10 +123,14 @@ impl DeviceTy {
                 lasers.push(laser);
             },
             DeviceTy::Goal(value) => {
-                // TODO: Count goal fulfills here?
+                let Some(Some(input)) = ends_h.get(y as usize, x as usize) else { return false; };
+                // Within 2 rgb's
+                let colors_are_eq = value.color.abs_diff_eq(&input.color, 2.0 / 255.0);
+                log::info!("goal: {:?} vs {:?}, are they equal? {}", value.color, input.color, colors_are_eq);
+                return colors_are_eq;
             },
             DeviceTy::Hook => {
-                let Some(Some(input)) = ends_h.get(y as usize, x as usize) else { return; };
+                let Some(Some(input)) = ends_h.get(y as usize, x as usize) else { return false; };
 
                 lasers.push(Laser {
                     x, y, length: 0,
@@ -140,6 +145,7 @@ impl DeviceTy {
             // TODO: Implement the gameplay logic.
             _ => {}
         }
+        false
     }
 }
 
@@ -232,6 +238,9 @@ pub struct Level {
     // I guess for now, we won't worry about making the bounds consistently
     // tiles or not.
     pub bounds: (u32, u32, u32, u32),
+
+    pub nr_goals: usize,
+    pub nr_goals_fulfilled: usize,
 }
 
 impl Level {
@@ -337,6 +346,8 @@ impl Level {
             lasers: Vec::new(),
             h_laser_ends: Grid::new_with_order(map.height as usize, map.width as usize, grid::Order::ColumnMajor),
             bounds: (0, 0, 0, 0),
+            nr_goals: 0,
+            nr_goals_fulfilled: 0,
         };
 
         let floors = map.get_layer(0).unwrap().as_tile_layer().unwrap();
@@ -431,6 +442,10 @@ impl Level {
                     // the void / the partial-void.
                     // Note: Tiled's Y positions are very weird. Subtract 32
                     level.force_place(x, y, ty, locked);
+
+                    if id == GOAL {
+                        level.nr_goals += 1;
+                    }
                 },
                 MIX => level.force_place(x, y, DeviceTy::Mix, locked),
                 HOOK => level.force_place(x, y, DeviceTy::Hook, locked),
@@ -656,13 +671,16 @@ impl Level {
 
         let mut laser_len = 0usize;
 
+        let mut nr_goals_fulfilled = 0;
+
         for x in 0..self.grid.cols() {
             for y in 0..self.grid.rows() {
                 let cell = self.grid.get(y, x).unwrap();
                 //log::info!("cell @ {},{} => {:?}", x, y, std::mem::discriminant(cell));
                 match cell {
                     GridCell::DeviceRoot(device) => {
-                        device.ty.make_lasers(x as i32, y as i32, &mut self.lasers, &self.h_laser_ends);
+                        let goal = device.ty.make_lasers(x as i32, y as i32, &mut self.lasers, &self.h_laser_ends);
+                        if goal { nr_goals_fulfilled += 1; }
                         while laser_len < self.lasers.len() {
                             self.extend_laser_h(laser_len);
                             laser_len += 1;
@@ -672,5 +690,7 @@ impl Level {
                 }
             }
         }
+
+        self.nr_goals_fulfilled = nr_goals_fulfilled;
     }
 }
