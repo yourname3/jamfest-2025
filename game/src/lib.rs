@@ -570,6 +570,8 @@ pub struct GameplayLogic {
     assets: Assets,
     level: Level,
 
+    cur_level_idx: usize,
+
     selector: Selector,
 
     has_won: bool,
@@ -585,15 +587,28 @@ macro_rules! tweak_vec3 {
     };
 }
 
+static LEVELS: [&str; 4] = [
+    "intro",
+    "intro_mix_simpler",
+    "intro_mix",
+    "locked_mixers",
+];
+
 impl GameplayLogic {
     #[inline_tweak::tweak_fn]
     pub fn tweak_scene(&mut self, engine: &mut PonyGame) {
         engine.main_world.lights[0].color.set(vec3(5.0, 5.0, 5.0));
     }
 
-    fn open_level(&mut self, engine: &mut PonyGame, level: &str) {
-        self.level = Level::new_from_map(&format!("./levels/{}.tmx", level), engine, &self.assets); 
-        self.state = GameplayState::Level;
+    fn open_level(&mut self, engine: &mut PonyGame, idx: usize) {
+        if let Some(name) = LEVELS.get(idx) {
+            self.level = Level::new_from_map(&format!("./levels/{}.tmx", name), engine, &self.assets); 
+            self.state = GameplayState::Level;
+            self.cur_level_idx = idx;
+        }
+        else {
+            self.state = GameplayState::LevelSelect;
+        }
     }
 }
 
@@ -635,6 +650,7 @@ impl ponygame::Gameplay for GameplayLogic {
             assets,
             theta: 0.0,
             level,
+            cur_level_idx: 0,
             selector,
             has_won: false,
             state: GameplayState::LevelSelect,
@@ -681,7 +697,7 @@ impl ponygame::Gameplay for GameplayLogic {
                         if self.has_won {
                             ui.heading("You Win!");
                             if ui.button("Next Level").clicked() {
-
+                                self.open_level(engine, self.cur_level_idx + 1);
                             }
                             if ui.button("Quit").clicked() {
                                 self.state = GameplayState::LevelSelect;
@@ -696,18 +712,12 @@ impl ponygame::Gameplay for GameplayLogic {
             GameplayState::LevelSelect => {
                 egui::CentralPanel::default()
                     .show(ctx, |ui| {
-                        let levels = [
-                            "intro",
-                            "intro_mix_simpler",
-                            "intro_mix",
-                            "locked_mixers",
-                        ];
 
                         let mut nr = 1;
-                        for level in levels {
+                        for level in LEVELS {
                             let label = format!("Level {}", nr);
                             if ui.button(label).clicked() {
-                                self.open_level(engine, level);
+                                self.open_level(engine, nr - 1);
                             }
 
                             nr += 1;
