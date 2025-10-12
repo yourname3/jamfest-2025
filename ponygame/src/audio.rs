@@ -100,12 +100,12 @@ impl Audio {
         handle.mixer().add(sound.buffer.clone().speed(speed));
     }
 
-    pub fn play_music(&mut self, data: &'static [u8]) {
+    pub fn play_music(&mut self, data: &'static [u8], amp: f32) {
         // Store music even if we don't have a backend, because we might get one
         // later.
         let cursor = std::io::Cursor::new(data);
         let decoder = rodio::decoder::Decoder::new_looped(cursor).unwrap();
-        let music = decoder;
+        let music = decoder.amplify(amp);
 
         log::info!("playing music: {} {} {:?}", music.sample_rate(), music.channels(), music.total_duration());
 

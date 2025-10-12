@@ -4,8 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [package.metadata.wasm-pack.profile.release]
-wasm-opt = false
-nothing = ["-Oz",
+wasm-opt = ["-Oz",
     "--enable-mutable-globals",
     "--enable-bulk-memory",
     "--enable-nontrapping-float-to-int",

@@ -776,7 +776,7 @@ impl ponygame::Gameplay for GameplayLogic {
 
         level.setup_camera(engine);
 
-        engine.audio.play_music(include_bytes!("./assets/music.ogg"));
+        engine.audio.play_music(include_bytes!("./assets/music.ogg"), 1.6);
 
         GameplayLogic {
             assets,

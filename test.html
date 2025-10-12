@@ -1,6 +1,8 @@
-<meta charset="utf-8">
+<html>
+	<head>
+		<meta charset="utf-8">
 		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-		<title>Demo</title>
+		<title>ben's beams</title>
 		<style>
 			html, body {
 				margin: 0px;
@@ -41,13 +43,13 @@
 	</head>
 	<body>
 		<div id="loading-tmp">
-			<p class="loading-text">loading...</p>
+			<p class="loading-text">loading beams...</p>
 		</div>
 	<div class="container" id="container">
 		<canvas class="game" id="canvas" oncontextmenu="event.preventDefault()" tabindex=-1></canvas>
 	</div>
 		<script type='module'>
-			import init from "./game/pkg/game.js";
+			import init from "./game.js";
 
 			var loadingTmp = document.getElementById("loading-tmp");
 			var container = document.getElementById("container");
