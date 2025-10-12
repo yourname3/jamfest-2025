@@ -698,11 +698,12 @@ macro_rules! tweak_vec3 {
     };
 }
 
-static LEVELS: [&str; 6] = [
+static LEVELS: [&str; 7] = [
     "intro",
     "intro_mix_simpler",
     "intro_mix",
     "locked_mixers",
+    "another_swaps",
     "crazy_swaps",
     "intro_mix_constrained",
 ];

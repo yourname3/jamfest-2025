@@ -258,6 +258,7 @@ fn load_level(path: &str) -> tiled::Map {
         tiled_file!(path, "./levels/intro_mix_constrained.tmx");
         tiled_file!(path, "./levels/tileset.tsx");
         tiled_file!(path, "./levels/crazy_swaps.tmx");
+        tiled_file!(path, "./levels/another_swaps.tmx");
 
         Err(std::io::ErrorKind::NotFound.into())
     });

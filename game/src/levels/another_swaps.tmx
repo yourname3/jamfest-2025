@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="30" height="20" tilewidth="32" tileheight="32" infinite="0" nextlayerid="5" nextobjectid="57">
+ <tileset firstgid="1" source="tileset.tsx"/>
+ <layer id="1" name="floor" width="30" height="20">
+  <data encoding="csv">
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,1,2,2,2,3,0,0,0,1,2,3,0,1,2,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,17,18,18,18,19,0,0,0,17,18,19,0,17,18,19,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,17,18,18,18,19,1,2,3,33,51,81,3,17,18,19,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,17,18,18,18,19,17,18,19,0,17,18,19,17,18,19,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,17,18,18,18,19,33,51,81,3,33,34,35,17,18,19,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,17,18,18,18,19,0,17,18,19,0,0,0,17,18,19,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,17,18,18,18,19,0,33,34,35,1,2,3,17,18,19,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,17,18,18,18,19,0,0,0,0,17,18,19,17,18,19,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,33,34,34,34,35,0,0,0,0,33,34,35,33,34,35,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+</data>
+ </layer>
+ <objectgroup id="4" name="objects">
+  <object id="2" gid="4" x="128" y="256" width="32" height="32">
+   <properties>
+    <property name="color" type="color" value="#ff0000ff"/>
+    <property name="locked" type="bool" value="false"/>
+   </properties>
+  </object>
+  <object id="55" gid="4" x="128" y="320" width="32" height="32">
+   <properties>
+    <property name="color" type="color" value="#ffff0000"/>
+    <property name="locked" type="bool" value="false"/>
+   </properties>
+  </object>
+  <object id="9" gid="4" x="128" y="128" width="32" height="32">
+   <properties>
+    <property name="color" type="color" value="#ffff0000"/>
+    <property name="locked" type="bool" value="false"/>
+   </properties>
+  </object>
+  <object id="12" gid="4" x="128" y="192" width="32" height="32">
+   <properties>
+    <property name="color" type="color" value="#ff00ff00"/>
+    <property name="locked" type="bool" value="false"/>
+   </properties>
+  </object>
+  <object id="56" gid="4" x="64" y="192" width="32" height="32">
+   <properties>
+    <property name="color" type="color" value="#ff00ff00"/>
+    <property name="locked" type="bool" value="false"/>
+   </properties>
+  </object>
+  <object id="8" gid="6" x="64" y="128" width="32" height="32">
+   <properties>
+    <property name="locked" type="bool" value="false"/>
+   </properties>
+  </object>
+  <object id="41" gid="13" x="224" y="192" width="32" height="32">
+   <properties>
+    <property name="locked" type="bool" value="true"/>
+   </properties>
+  </object>
+  <object id="50" gid="13" x="320" y="256" width="32" height="32">
+   <properties>
+    <property name="locked" type="bool" value="true"/>
+   </properties>
+  </object>
+  <object id="51" gid="13" x="320" y="128" width="32" height="32">
+   <properties>
+    <property name="locked" type="bool" value="true"/>
+   </properties>
+  </object>
+  <object id="47" gid="5" x="448" y="320" width="32" height="32">
+   <properties>
+    <property name="color" type="color" value="#ffb4b400"/>
+    <property name="locked" type="bool" value="true"/>
+   </properties>
+  </object>
+  <object id="52" gid="5" x="448" y="256" width="32" height="32">
+   <properties>
+    <property name="color" type="color" value="#ffff0000"/>
+    <property name="locked" type="bool" value="true"/>
+   </properties>
+  </object>
+  <object id="53" gid="5" x="448" y="192" width="32" height="32">
+   <properties>
+    <property name="color" type="color" value="#ff00ff00"/>
+    <property name="locked" type="bool" value="true"/>
+   </properties>
+  </object>
+  <object id="54" gid="5" x="448" y="128" width="32" height="32">
+   <properties>
+    <property name="color" type="color" value="#ff0000ff"/>
+    <property name="locked" type="bool" value="true"/>
+   </properties>
+  </object>
+ </objectgroup>
+</map>
