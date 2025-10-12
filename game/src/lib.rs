@@ -210,17 +210,34 @@ impl Selector {
                     // Can't move locked devices.
                     if dev.locked { continue; }
 
-                    let bounds = dev.ty.get_bounds();
-                    let low_point = vec3(x as f32, 0.0, y as f32);
-                    let high_point = vec3(low_point.x + bounds.0 as f32, 0.0, low_point.z + bounds.1 as f32);
+                    let check_square = |subpoint: (i32, i32)| {
+                        //let bounds = dev.ty.get_bounds();
+                        let low_point = vec3(x as f32 + subpoint.0 as f32, 0.0, y as f32 + subpoint.1 as f32);
+                        // Check 1x1 squares
+                        let high_point = vec3(low_point.x + 1.0, 0.0, low_point.z + 1.0);
 
-                    let low_point = (vp * low_point.extend(1.0)).truncate().truncate();
-                    let high_point = (vp * high_point.extend(1.0)).truncate().truncate();
+                        let low_point = (vp * low_point.extend(1.0)).truncate().truncate();
+                        let high_point = (vp * high_point.extend(1.0)).truncate().truncate();
+
+                        if pos.x < low_point.x || pos.x > high_point.x { return false; }
+                        if pos.y < high_point.y || pos.y > low_point.y { return false; }
+                        return true;
+                    };
+
+                    let check_all_squares = |points: &[(i32, i32)]| {
+                        // If the mouse is in any of the device's squares, we
+                        // will pick it up.
+                        for point  in points {
+                            if check_square(*point) { return true; }
+                        }
+                        return false;
+                    };
+
+                    if !check_all_squares(dev.ty.get_cells()) { continue; }
 
                     //log::info!("candidate object @ {:?} -> {:?}", low_point, high_point);
 
-                    if pos.x < low_point.x || pos.x > high_point.x { continue; }
-                    if pos.y < high_point.y || pos.y > low_point.y { continue; }
+                    
 
                     // Cursor should be overlapping..
                     self.state = dev.ty.get_selector();
