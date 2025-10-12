@@ -124,6 +124,9 @@ struct Selector {
     start_x: i32,
     start_y: i32,
 
+    offset_x: f32,
+    offset_y: f32,
+
     is_moving: bool,
 }
 
@@ -150,6 +153,9 @@ impl Selector {
 
             start_x: 0,
             start_y: 0,
+
+            offset_x: 0.0,
+            offset_y: 0.0,
 
             is_moving: false,
         }
@@ -193,8 +199,8 @@ impl Selector {
             Vector3::zero(), Vector3::unit_y()
         )).unwrap();
 
-        self.x = intersect.x as i32;
-        self.y = intersect.z as i32;
+        self.x = f32::ceil(intersect.x - self.offset_x) as i32;
+        self.y = f32::ceil(intersect.z - self.offset_x) as i32;
 
         let valid = level.move_from(self.start_x, self.start_y, &dev, self.x, self.y);
         if let Some(mesh) = self.get_current_mesh() {
@@ -271,6 +277,15 @@ impl Selector {
                     self.y = y as i32;
                     self.start_x = self.x;
                     self.start_y = self.y;
+
+                    // intersect.xz = cursor poss, want cursor_pos - top left corner
+                    // (X, Y)
+                    let intersect = engine.main_camera.intersect_ray_with_plane_from_ndc(pos, engine.get_viewport(), (
+                        Vector3::zero(), Vector3::unit_y()
+                    )).unwrap();
+
+                    self.offset_x = intersect.x - x as f32;
+                    self.offset_y = intersect.z - y as f32;
 
                     // Update the mesh to not be red
                     if let Some(mesh) = self.get_current_mesh() {
