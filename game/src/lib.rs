@@ -2,7 +2,7 @@ use std::f32::consts::PI;
 
 mod level;
 
-use egui::Align2;
+use egui::{Align2, Color32};
 use grid::Grid;
 use inline_tweak::tweak;
 use ponygame::cgmath::num_traits::pow;
@@ -690,23 +690,38 @@ impl ponygame::Gameplay for GameplayLogic {
         ctx.set_zoom_factor(4.0);
         match self.state {
             GameplayState::Level => {
-                egui::Area::new(egui::Id::new("test"))
-                    .anchor(Align2::CENTER_CENTER, (0.0, 0.0))
+                egui::Area::new(egui::Id::new("lvl_menu"))
+                    .fixed_pos((4.0, 4.0))
                     .show(ctx, |ui| {
-                        ui.set_max_width(300.0);
-                        if self.has_won {
-                            ui.heading("You Win!");
-                            if ui.button("Next Level").clicked() {
-                                self.open_level(engine, self.cur_level_idx + 1);
-                            }
-                            if ui.button("Quit").clicked() {
-                                self.state = GameplayState::LevelSelect;
-                            }
+                        ui.heading(format!("Level {}", self.cur_level_idx));
+                        if ui.button("Quit").clicked() {
+                            self.state = GameplayState::LevelSelect;
                         }
-                        //.heading("Test UI");
-
-                        //ui.button("Press This Button!");
                     });
+
+                if self.has_won {
+                    egui::Area::new(egui::Id::new("win_menu"))
+                        .anchor(Align2::CENTER_CENTER, (0.0, 0.0))
+                        .show(ctx, |ui| {
+                            egui::Frame::default()
+                                .fill(ui.visuals().panel_fill)
+                                .corner_radius(5.0)
+                                .inner_margin(5.0)
+                                .show(ui, |ui| {
+                                    ui.heading("You Win!");
+                                    if ui.button("Next Level").clicked() {
+                                        self.open_level(engine, self.cur_level_idx + 1);
+                                    }
+                                    if ui.button("Quit").clicked() {
+                                        self.state = GameplayState::LevelSelect;
+                                    }
+                                });
+                            
+                            //.heading("Test UI");
+
+                            //ui.button("Press This Button!");
+                        });
+                }
             }
 
             GameplayState::LevelSelect => {
