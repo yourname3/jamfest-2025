@@ -38,6 +38,8 @@ struct Assets {
     node_hook: Gp<Mesh>,
     node_hook_mat: LockUnlockMat,
 
+    metal_sfx: [Sound; 5],
+
     node_ingot: Gp<Mesh>,
     node_mix2: Gp<Mesh>,
     node_nut: Gp<Mesh>,
@@ -186,7 +188,7 @@ impl Selector {
         }
     }
 
-    pub fn do_move(&mut self, engine: &mut PonyGame, level: &mut Level) {
+    pub fn do_move(&mut self, engine: &mut PonyGame, assets: &Assets, level: &mut Level) {
         if matches!(self.state, SelectorState::None) { return; }
 
         let Some(dev) = self.object.get() else { return; };
@@ -200,6 +202,7 @@ impl Selector {
             Vector3::zero(), Vector3::unit_y()
         )).unwrap();
 
+        let (last_x, last_y) = (self.x, self.y);
         self.x = f32::ceil(intersect.x - self.offset_x) as i32;
         self.y = f32::ceil(intersect.z - self.offset_x) as i32;
 
@@ -209,15 +212,23 @@ impl Selector {
             mesh.update(engine.render_ctx());
         }
 
+        if last_x != self.x || last_y != self.y {
+            if valid {
+                use rand::seq::IndexedRandom;
+                let mut rng = rand::rng();
+                engine.audio.play(assets.metal_sfx.choose(&mut rng).unwrap());
+            }
+        }
+
         if !engine.get_main_window().left_mouse_down {
             self.is_moving = false;
             level.finish_move_from(self.start_x, self.start_y, &dev, self.x, self.y);
         }
     }
 
-    pub fn update(&mut self, engine: &mut PonyGame, level: &mut Level) {
+    pub fn update(&mut self, engine: &mut PonyGame, assets: &Assets, level: &mut Level) {
         if self.is_moving {
-            self.do_move(engine, level);
+            self.do_move(engine, assets, level);
             return;
         }
 
@@ -445,6 +456,14 @@ impl Assets {
                 ..PBRMaterial::default(ctx)
             }),
 
+            metal_sfx: [
+                sfx!("./assets/metal_1.wav"),
+                sfx!("./assets/metal_2.wav"),
+                sfx!("./assets/metal_3.wav"),
+                sfx!("./assets/metal_4.wav"),
+                sfx!("./assets/metal_5.wav"),
+            ],
+
             node_mix: mesh!(ctx, "./assets/mix_node.glb"),
             node_mix_mat: lock_unlock!(ctx, lock_data, "./assets/label_mix.png"),
             node_hook: mesh!(ctx, "./assets/hook_node.glb"),
@@ -646,6 +665,8 @@ impl ponygame::Gameplay for GameplayLogic {
 
         level.setup_camera(engine);
 
+        engine.audio.play_music(include_bytes!("./assets/music.ogg"));
+
         GameplayLogic {
             assets,
             theta: 0.0,
@@ -668,7 +689,7 @@ impl ponygame::Gameplay for GameplayLogic {
         self.level.build_lasers();
         self.level.setup_camera(engine);
 
-        self.selector.update(engine, &mut self.level);
+        self.selector.update(engine, &self.assets, &mut self.level);
 
         // We won if we fulfilled all the goals and are not moving anything.
         self.has_won = (self.level.nr_goals_fulfilled >= self.level.nr_goals)

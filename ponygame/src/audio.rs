@@ -11,6 +11,9 @@ enum AudioBackend {
 
 pub struct Audio {
     backend: AudioBackend,
+
+    // Used to keep music around until we have a proper backend.
+    stored_music: Option<Box<dyn Source + Send + 'static>>,
 }
 
 /// Represents a single Sound asset that can be played. Used for sounds where
@@ -37,29 +40,38 @@ impl Sound {
 impl Audio {
     pub fn initial() -> Self {
         if cfg!(target_arch = "wasm32") {
-            return Audio { backend: AudioBackend::WaitForGesture };
+            return Audio { backend: AudioBackend::WaitForGesture, stored_music: None };
         }
-        return Self::new()
+        return Self::new(None)
     }
 
     pub fn resume_on_gesture(&mut self) {
         if matches!(self.backend, AudioBackend::WaitForGesture) {
-            *self = Self::new()
+            *self = Self::new(self.stored_music.take());
+            if let Some(current_music) = self.stored_music.take() {
+                let AudioBackend::Open(handle) = &self.backend else { return };
+
+                log::info!("audio: resuming music on gesture");
+
+                handle.mixer().add(current_music);
+            }
         }
     }
 
-    fn new() -> Self {
+    fn new(stored_music: Option<Box<dyn Source + Send + 'static>>) -> Self {
         if let Ok(stream_handle) = rodio::OutputStreamBuilder::open_default_stream() {
             log::info!("audio: using backend: {:?}", stream_handle.config());
 
             return Audio {
-                backend: AudioBackend::Open(stream_handle)
+                backend: AudioBackend::Open(stream_handle),
+                stored_music,
             }
         }
 
         log::info!("audio: no backend available");
         return Audio {
-            backend: AudioBackend::None
+            backend: AudioBackend::None,
+            stored_music,
         }
     }
 
@@ -69,5 +81,22 @@ impl Audio {
         // Cloning should be fast here because the internal data is reference
         // counted.
         handle.mixer().add(sound.buffer.clone());
+    }
+
+    pub fn play_music(&mut self, data: &'static [u8]) {
+        // Store music even if we don't have a backend, because we might get one
+        // later.
+        let cursor = std::io::Cursor::new(data);
+        let decoder = rodio::Decoder::try_from(cursor).unwrap();
+        let music = decoder.repeat_infinite();
+
+        let AudioBackend::Open(handle) = &self.backend else {
+            // If we don't have a handle *yet*, store the music for later.
+            let music = Box::new(music);
+            self.stored_music = Some(music.clone());
+            return;
+        };
+
+        handle.mixer().add(music);
     }
 }
