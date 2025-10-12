@@ -418,7 +418,7 @@ impl ponygame::Gameplay for GameplayLogic {
 
         let mut level = Level::new_from_map("./levels/test.tmx", engine, &assets);
        // for i in 0..5 {
-        level.try_place(2, 2, DeviceTy::Mix);
+        //level.try_place(2, 2, DeviceTy::Mix);
         
         //}//
 

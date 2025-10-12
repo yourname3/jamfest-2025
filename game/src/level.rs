@@ -258,6 +258,8 @@ impl Level {
         const EMITTER: u32 = 3;
         const GOAL   : u32 = 4;
 
+        const MIX    : u32 = 5;
+
         let map = load_level(map_path);
 
         let mut level = Level {
@@ -337,6 +339,10 @@ impl Level {
         for obj in objects.objects() {
             let id = obj.get_tile().unwrap().id();
             log::info!("object @ {}, {} => {}", obj.x, obj.y, id);
+
+            let x = f32::floor(obj.x / 32.0) as i32;
+            let y = f32::floor( (obj.y - 32.0) / 32.0) as i32;
+
             match id {
                 EMITTER | GOAL => {
                     let color = match obj.properties.get("color") {
@@ -352,9 +358,11 @@ impl Level {
                     // Use force place because level objects can be overlapping
                     // the void / the partial-void.
                     // Note: Tiled's Y positions are very weird. Subtract 32
-                    level.force_place(f32::floor(obj.x / 32.0) as i32,f32::floor( (obj.y - 32.0) / 32.0) as i32,
-                        ty);
+                    level.force_place(x, y, ty);
                 },
+                MIX => {
+                    level.force_place(x, y, DeviceTy::Mix)
+                }
                 _ => {}
             }
         }
