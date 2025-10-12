@@ -6,7 +6,7 @@ use grid::Grid;
 use inline_tweak::tweak;
 use ponygame::{game, gc};
 // /
-use ponygame::cgmath::{point3, vec3, AbsDiffEq, Matrix4, SquareMatrix, Vector3};
+use ponygame::cgmath::{point3, vec3, AbsDiffEq, InnerSpace, Matrix4, SquareMatrix, Vector3};
 use ponygame::cgmath;
 use ponygame::log;
 
@@ -112,9 +112,11 @@ impl DeviceTy {
                 let Some(Some(left)) = ends_h.get(y as usize, x as usize) else { return false; };
                 let Some(Some(right)) = ends_h.get(y as usize + 1, x as usize) else { return false; };
 
+                let mix = ((left.color + right.color) * 0.5).normalize();
+
                 let laser = Laser {
                     x, y: y + 1, length: 0,
-                    value: LaserValue::color((left.color + right.color) * 0.5)
+                    value: LaserValue::color(mix)
                 };
                 lasers.push(laser);
             },

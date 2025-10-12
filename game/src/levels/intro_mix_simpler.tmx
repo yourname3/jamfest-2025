@@ -46,7 +46,7 @@
   </object>
   <object id="4" gid="5" x="288" y="128" width="32" height="32">
    <properties>
-    <property name="color" type="color" value="#ff808000"/>
+    <property name="color" type="color" value="#ffb400b4"/>
     <property name="locked" type="bool" value="true"/>
    </properties>
   </object>
