@@ -387,7 +387,7 @@ impl Selector {
                         mesh.update(engine.render_ctx());
                     }
 
-                    if engine.get_main_window().left_mouse_down {
+                    if engine.get_main_window().left_mouse_just_pressed() {
                         self.is_moving = true;
                         engine.audio.play_speed(&assets.metal_pickup, rand::random_range(0.95..1.05));
                     }

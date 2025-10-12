@@ -90,7 +90,9 @@ impl PonyGame {
             let mut max_loops = 4;
             while total >= step_size {
                 total -= step_size;
+               
                 gameplay.tick(self);
+                self.get_main_window_mut().left_mouse_was_down = self.get_main_window().left_mouse_down;
 
                 max_loops -= 1;
                 if max_loops <= 0 { break; }
