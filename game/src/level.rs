@@ -23,6 +23,13 @@ pub enum DeviceTy {
     Emitter(LaserValue),
     Goal(LaserValue),
     Hook,
+    Ingot,
+    Mix2,
+    Nut,
+    Bolt,
+    Collect,
+    Swap,
+    Split,
 }
 
 impl DeviceTy {
@@ -32,6 +39,13 @@ impl DeviceTy {
             DeviceTy::Emitter(_) => &[(0, 0)],
             DeviceTy::Goal(_) => &[(0, 0)],
             DeviceTy::Hook => &[(0, 0), (0, 1)],
+            DeviceTy::Ingot => &[(0, 0)],
+            DeviceTy::Mix2 => &[(0, 0), (0, 2)],
+            DeviceTy::Nut => &[(0, 0)],
+            DeviceTy::Bolt => &[(0, 0)],
+            DeviceTy::Collect => &[(0, 0), (0, 1), (0, 2)],
+            DeviceTy::Swap => &[(0, 0), (1, 2)],
+            DeviceTy::Split => &[(0, 0), (0, 2), (0, 4)],
         }
     }
 
@@ -41,6 +55,13 @@ impl DeviceTy {
             DeviceTy::Emitter(_) => (1, 1),
             DeviceTy::Goal(_) => (1, 1),
             DeviceTy::Hook => (1, 2),
+            DeviceTy::Ingot => (1, 1),
+            DeviceTy::Mix2 => (1, 3),
+            DeviceTy::Nut => (1, 1),
+            DeviceTy::Bolt => (1, 1),
+            DeviceTy::Collect => (1, 3),
+            DeviceTy::Swap => (2, 3),
+            DeviceTy::Split => (1, 5),
         }
     }
 
@@ -51,6 +72,14 @@ impl DeviceTy {
             DeviceTy::Emitter(_) => SelectorState::Vert1,
             DeviceTy::Goal(_) => SelectorState::Vert1,
             DeviceTy::Hook => SelectorState::Vert2,
+
+            DeviceTy::Ingot => SelectorState::Vert1,
+            DeviceTy::Mix2 => SelectorState::Vert1,
+            DeviceTy::Nut => SelectorState::Vert1,
+            DeviceTy::Bolt => SelectorState::Vert1,
+            DeviceTy::Collect => SelectorState::Vert1,
+            DeviceTy::Swap => SelectorState::Vert1,
+            DeviceTy::Split => SelectorState::Vert1,
         }
     }
 
@@ -60,6 +89,13 @@ impl DeviceTy {
             DeviceTy::Emitter(_) => (&assets.emitter, &assets.emitter_mat),
             DeviceTy::Goal(_) => (&assets.goal, &assets.goal_mat),
             DeviceTy::Hook => (&assets.node_hook, &assets.node_hook_mat),
+            DeviceTy::Ingot => (&assets.node_ingot, &assets.node_ingot_mat),
+            DeviceTy::Mix2 => (&assets.node_mix2, &assets.node_mix2_mat),
+            DeviceTy::Nut => (&assets.node_nut, &assets.node_nut_mat),
+            DeviceTy::Bolt => (&assets.node_bolt, &assets.node_bolt_mat),
+            DeviceTy::Collect => (&assets.node_collect, &assets.node_collect_mat),
+            DeviceTy::Swap => (&assets.node_swap, &assets.node_swap_mat),
+            DeviceTy::Split => (&assets.node_split, &assets.node_split_mat),
         };
         Gp::new(MeshInstance::new(
             engine.render_ctx(),
@@ -99,7 +135,10 @@ impl DeviceTy {
                     x, y: y + 1, length: 0,
                     value: input.clone()
                 });
-            }
+            },
+
+            // TODO: Implement the gameplay logic.
+            _ => {}
         }
     }
 }
@@ -280,6 +319,13 @@ impl Level {
 
         const MIX    : u32 = 5;
         const HOOK   : u32 = 6;
+        const INGOT  : u32 = 7;
+        const MIX2   : u32 = 8;
+        const NUT    : u32 = 9;
+        const BOLT   : u32 = 10;
+        const COLLECT: u32 = 11;
+        const SWAP   : u32 = 12;
+        const SPLIT  : u32 = 13;
 
         let map = load_level(map_path);
 
@@ -386,12 +432,15 @@ impl Level {
                     // Note: Tiled's Y positions are very weird. Subtract 32
                     level.force_place(x, y, ty, locked);
                 },
-                MIX => {
-                    level.force_place(x, y, DeviceTy::Mix, locked)
-                },
-                HOOK => {
-                    level.force_place(x, y, DeviceTy::Hook, locked)
-                }
+                MIX => level.force_place(x, y, DeviceTy::Mix, locked),
+                HOOK => level.force_place(x, y, DeviceTy::Hook, locked),
+                INGOT => level.force_place(x, y, DeviceTy::Ingot, locked),
+                MIX2 => level.force_place(x, y, DeviceTy::Mix2, locked),
+                NUT => level.force_place(x, y, DeviceTy::Nut, locked),
+                BOLT => level.force_place(x, y, DeviceTy::Bolt, locked),
+                COLLECT => level.force_place(x, y, DeviceTy::Collect, locked),
+                SWAP => level.force_place(x, y, DeviceTy::Swap, locked),
+                SPLIT => level.force_place(x, y, DeviceTy::Split, locked),
                 _ => {}
             }
         }

@@ -37,6 +37,24 @@ struct Assets {
     node_hook: Gp<Mesh>,
     node_hook_mat: LockUnlockMat,
 
+    node_ingot: Gp<Mesh>,
+    node_mix2: Gp<Mesh>,
+    node_nut: Gp<Mesh>,
+    node_bolt: Gp<Mesh>,
+    node_prism: Gp<Mesh>,
+    node_split: Gp<Mesh>,
+    node_swap: Gp<Mesh>,
+    node_collect: Gp<Mesh>,
+
+    node_ingot_mat: LockUnlockMat,
+    node_mix2_mat: LockUnlockMat,
+    node_nut_mat: LockUnlockMat,
+    node_bolt_mat: LockUnlockMat,
+    node_prism_mat: LockUnlockMat,
+    node_split_mat: LockUnlockMat,
+    node_swap_mat: LockUnlockMat,
+    node_collect_mat: LockUnlockMat,
+
     laser: Gp<Mesh>,
     laser_mat: Gp<PBRMaterial>,
 
@@ -321,6 +339,26 @@ impl Assets {
             "wall-tl-i", "wall-tr-i", "wall-bl-i", "wall-br-i",
         ]).unwrap();
 
+        let [
+            node_ingot,
+            node_mix2,
+            node_nut,
+            node_bolt,
+            node_prism,
+            node_split,
+            node_swap,
+            node_collect,
+        ] = import_mesh_set_as_gc(engine, include_bytes!("./assets/nodes.glb"), &[
+            "ingot",
+            "mix2",
+            "nut",
+            "bolt",
+            "prism",
+            "split",
+            "swap",
+            "collect",
+        ]).unwrap();
+
         let laser_shader = Gp::new(PBRShader::new(ctx, "laser.wgsl", include_str!("./shaders/laser.wgsl")));
 
         Assets {
@@ -338,6 +376,24 @@ impl Assets {
             node_mix_mat: lock_unlock!(ctx, lock_data, "./assets/label_mix.png"),
             node_hook: mesh!(ctx, "./assets/hook_node.glb"),
             node_hook_mat: lock_unlock!(ctx, lock_data, "./assets/hook_label.png"),
+
+            node_ingot,
+            node_mix2,
+            node_nut,
+            node_bolt,
+            node_prism,
+            node_split,
+            node_swap,
+            node_collect,
+
+            node_ingot_mat: lock_unlock!(ctx, lock_data, "./assets/hook_label.png"),
+            node_mix2_mat: lock_unlock!(ctx, lock_data, "./assets/hook_label.png"),
+            node_nut_mat: lock_unlock!(ctx, lock_data, "./assets/hook_label.png"),
+            node_bolt_mat: lock_unlock!(ctx, lock_data, "./assets/hook_label.png"),
+            node_prism_mat: lock_unlock!(ctx, lock_data, "./assets/hook_label.png"),
+            node_split_mat: lock_unlock!(ctx, lock_data, "./assets/hook_label.png"),
+            node_swap_mat: lock_unlock!(ctx, lock_data, "./assets/hook_label.png"),
+            node_collect_mat: lock_unlock!(ctx, lock_data, "./assets/hook_label.png"),
 
             emitter: mesh!(ctx, "./assets/emitter.glb"),
             emitter_mat: lock_unlock!(ctx, lock_data, "./assets/emitter_label.png"),
