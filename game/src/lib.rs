@@ -722,6 +722,10 @@ impl GameplayLogic {
             self.level = Level::new_from_map(&format!("./levels/{}.tmx", name), engine, &self.assets); 
             self.state = GameplayState::Level;
             self.cur_level_idx = idx;
+
+            // Reset selector
+            self.selector.is_moving = false;
+            self.selector.state = SelectorState::None;
         }
         else {
             self.state = GameplayState::LevelSelect;
