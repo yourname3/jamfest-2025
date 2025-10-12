@@ -688,6 +688,8 @@ pub struct GameplayLogic {
     has_won: bool,
 
     state: GameplayState,
+
+    the_horse: Gp<MeshInstance>,
 }
 
 // meow
@@ -740,6 +742,11 @@ impl ponygame::Gameplay for GameplayLogic {
        let assets = Assets::new(engine);
        let ctx = engine.render_ctx();
 
+       let the_horse = Gp::new(MeshInstance::new(ctx,
+            assets.horse_mesh.clone(),
+            assets.horse_material.clone(),
+            Matrix4::identity()));
+
         // let transform0 = cgmath::Matrix4::from_translation(vec3(-0.5, 0.0, 0.0));
         // let transform1 = cgmath::Matrix4::from_translation(vec3( 0.5, 0.0, 0.0));
 
@@ -775,15 +782,15 @@ impl ponygame::Gameplay for GameplayLogic {
             selector,
             has_won: false,
             state: GameplayState::MainMenu,
+
+            the_horse
         }
     }
 
 
 
     fn tick(&mut self, engine: &mut PonyGame) {
-        let ctx = engine.render_ctx();
-
-        self.theta += 0.1;
+        self.theta += 0.03;
         self.tweak_scene(engine);
 
         self.level.build_lasers();
@@ -803,8 +810,22 @@ impl ponygame::Gameplay for GameplayLogic {
 
         engine.main_world.clear_meshes();
         self.assets.pool.recycle();
-        self.level.build_meshes(engine, &self.assets);
-        self.selector.push_mesh(engine);
+        match self.state {
+            GameplayState::Level => {
+                self.level.build_meshes(engine, &self.assets);
+                self.selector.push_mesh(engine);
+            },
+            _ => {
+                engine.main_camera.position.set(point3(0.0, 2.0, -2.0));
+                engine.main_camera.target.set(point3(0.0, 0.0, 0.0));
+                engine.main_camera.projection.set(CameraProjection::Perspective { fovy: 45.0, znear: 0.01, zfar: 20.0 });
+                //aengine.main_camera
+                self.the_horse.transform.set(Matrix4::from_angle_y(cgmath::Rad(self.theta)));
+                self.the_horse.update(engine.render_ctx());
+
+                engine.main_world.push_mesh(self.the_horse.clone());
+            }
+        }
 
         //let offset = vec3(0.3 * f32::cos(self.theta), 0.0, 0.3 * f32::sin(self.theta));
 
@@ -864,7 +885,9 @@ impl ponygame::Gameplay for GameplayLogic {
             }
 
             GameplayState::LevelSelect => {
-                egui::CentralPanel::default().show(ctx, |ui| {
+                 egui::Area::new(egui::Id::new("level_select"))
+                    .anchor(Align2::CENTER_CENTER, (0.0, 0.0))
+                    .show(ctx, |ui| {
                     ui.vertical_centered(|ui| {
                         ui.heading("choose a level...");
                         let mut nr = 1;
@@ -884,7 +907,9 @@ impl ponygame::Gameplay for GameplayLogic {
 
             GameplayState::MainMenu => {
                 desired_scale = 5.0;
-                egui::CentralPanel::default().show(ctx, |ui| {
+                egui::Area::new(egui::Id::new("main_menu"))
+                    .anchor(Align2::CENTER_CENTER, (0.0, 0.0))
+                    .show(ctx, |ui| {
                      ui.vertical_centered(|ui| {
                         ui.heading("ben's beams");
                         if ui.button("play!").clicked() {
