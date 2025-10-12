@@ -39,6 +39,8 @@ struct Assets {
     node_hook_mat: LockUnlockMat,
 
     metal_sfx: [Sound; 5],
+    metal_pickup: Sound,
+    metal_putdown: Sound,
 
     node_ingot: Gp<Mesh>,
     node_mix2: Gp<Mesh>,
@@ -203,8 +205,8 @@ impl Selector {
         )).unwrap();
 
         let (last_x, last_y) = (self.x, self.y);
-        self.x = f32::ceil(intersect.x - self.offset_x) as i32;
-        self.y = f32::ceil(intersect.z - self.offset_x) as i32;
+        self.x = f32::round(intersect.x - self.offset_x) as i32;
+        self.y = f32::round(intersect.z - self.offset_x) as i32;
 
         let valid = level.move_from(self.start_x, self.start_y, &dev, self.x, self.y);
         if let Some(mesh) = self.get_current_mesh() {
@@ -223,6 +225,7 @@ impl Selector {
         if !engine.get_main_window().left_mouse_down {
             self.is_moving = false;
             level.finish_move_from(self.start_x, self.start_y, &dev, self.x, self.y);
+            engine.audio.play_speed(&assets.metal_putdown, rand::random_range(0.95..1.05));
         }
     }
 
@@ -307,6 +310,7 @@ impl Selector {
 
                     if engine.get_main_window().left_mouse_down {
                         self.is_moving = true;
+                        engine.audio.play_speed(&assets.metal_pickup, rand::random_range(0.95..1.05));
                     }
                     return;
                 }
@@ -463,6 +467,8 @@ impl Assets {
                 sfx!("./assets/metal_4.wav"),
                 sfx!("./assets/metal_5.wav"),
             ],
+            metal_pickup: sfx!("./assets/metal_pickup.wav"),
+            metal_putdown: sfx!("./assets/metal_putdown.wav"),
 
             node_mix: mesh!(ctx, "./assets/mix_node.glb"),
             node_mix_mat: lock_unlock!(ctx, lock_data, "./assets/label_mix.png"),

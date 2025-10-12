@@ -92,6 +92,14 @@ impl Audio {
         handle.mixer().add(sound.buffer.clone());
     }
 
+    pub fn play_speed(&self, sound: &Sound, speed: f32) {
+        let AudioBackend::Open(handle) = &self.backend else { return };
+
+        // Cloning should be fast here because the internal data is reference
+        // counted.
+        handle.mixer().add(sound.buffer.clone().speed(speed));
+    }
+
     pub fn play_music(&mut self, data: &'static [u8]) {
         // Store music even if we don't have a backend, because we might get one
         // later.
