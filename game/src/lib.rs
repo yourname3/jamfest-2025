@@ -590,7 +590,13 @@ impl GameplayLogic {
     pub fn tweak_scene(&mut self, engine: &mut PonyGame) {
         engine.main_world.lights[0].color.set(vec3(5.0, 5.0, 5.0));
     }
+
+    fn open_level(&mut self, engine: &mut PonyGame, level: &str) {
+        self.level = Level::new_from_map(&format!("./levels/{}.tmx", level), engine, &self.assets); 
+        self.state = GameplayState::Level;
+    }
 }
+
 
 impl ponygame::Gameplay for GameplayLogic {
     const GAME_TITLE: &'static str = "JamFest";
@@ -631,9 +637,11 @@ impl ponygame::Gameplay for GameplayLogic {
             level,
             selector,
             has_won: false,
-            state: GameplayState::Level,
+            state: GameplayState::LevelSelect,
         }
     }
+
+
 
     fn tick(&mut self, engine: &mut PonyGame) {
         let ctx = engine.render_ctx();
@@ -662,7 +670,7 @@ impl ponygame::Gameplay for GameplayLogic {
         //game.main_camera.position.set(point3(15.0 * f32::cos(self.theta), 15.0 * f32::sin(self.theta), 0.0));
     }
 
-    fn ui(&mut self, ctx: &egui::Context) {
+    fn ui(&mut self, engine: &mut PonyGame, ctx: &egui::Context) {
         ctx.set_zoom_factor(4.0);
         match self.state {
             GameplayState::Level => {
@@ -688,8 +696,22 @@ impl ponygame::Gameplay for GameplayLogic {
             GameplayState::LevelSelect => {
                 egui::CentralPanel::default()
                     .show(ctx, |ui| {
-                        ui.button("Level 1");
-                        ui.button("Level 2");
+                        let levels = [
+                            "intro",
+                            "intro_mix_simpler",
+                            "intro_mix",
+                            "locked_mixers",
+                        ];
+
+                        let mut nr = 1;
+                        for level in levels {
+                            let label = format!("Level {}", nr);
+                            if ui.button(label).clicked() {
+                                self.open_level(engine, level);
+                            }
+
+                            nr += 1;
+                        }
                     });
             }
 

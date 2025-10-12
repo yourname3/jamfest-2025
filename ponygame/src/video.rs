@@ -842,38 +842,40 @@ impl Video {
     }
 
     /// For now, returns whether we should now close the application.
-    pub fn handle_win_event<G: Gameplay>(&mut self, gameplay: &mut G, window_id: WindowId, win_event: WindowEvent, egui: &mut Egui) -> bool {
-        let Some(window) = self.id_map.get_mut(&window_id) else { return false; };
+    pub fn handle_win_event<G: Gameplay>(engine: &mut PonyGame, gameplay: &mut G, window_id: WindowId, win_event: WindowEvent) -> bool {
+        let Some(window) = engine.video.id_map.get_mut(&window_id) else { return false; };
 
         // TODO: Probably each Window should get its own EGUI
-        let egui_res = egui.egui_state.on_window_event(&window.sdl, &win_event);
+        let egui_res = engine.egui.egui_state.on_window_event(&window.sdl, &win_event);
         if egui_res.repaint { window.sdl.request_redraw(); }
         if egui_res.consumed { return false; }
 
         match win_event {
             WindowEvent::RedrawRequested => {
                 //  TODO: How do we handle this per-window?
-                let raw_input = egui.egui_state.take_egui_input(&window.sdl);
-                let full_output = egui.egui_ctx.run(raw_input, |ctx| {
-                    gameplay.ui(ctx);
+                let raw_input = engine.egui.egui_state.take_egui_input(&window.sdl);
+                // Clone the context for borrow checker :)
+                let context = engine.egui.egui_ctx.clone();
+                let full_output = context.run(raw_input, |ctx| {
+                    gameplay.ui(engine, ctx);
                 });
                 // TODO: Call this somehow...
                 // egui.egui_state.handle_platform_output(&window.sdl, full_output.platform_output);
 
                 // This is an ugly hack... We should really fix this...
-                self.render(egui, full_output);
+                engine.video.render(&mut engine.egui, full_output);
 
-                self.id_map.get(&window_id).unwrap().sdl.request_redraw();
+                engine.video.id_map.get(&window_id).unwrap().sdl.request_redraw();
             }
             WindowEvent::Resized(phys) => {
-                window.renderer.resize(&self.renderer, phys.width, phys.height);
+                window.renderer.resize(&engine.video.renderer, phys.width, phys.height);
                 window.sdl.request_redraw();
             },
             WindowEvent::CloseRequested => {
                 // This removes the inner 'sdl' object from existing, which results
                 // in a DestroyWindow operation.
-                self.id_map.remove(&window_id);
-                return self.id_map.is_empty();
+                engine.video.id_map.remove(&window_id);
+                return engine.video.id_map.is_empty();
             },
             WindowEvent::CursorMoved { device_id, position } => {
                 window.cursor_position.x = position.x as f32;

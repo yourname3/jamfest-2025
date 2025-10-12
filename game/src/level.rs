@@ -216,11 +216,14 @@ macro_rules! tiled_file {
     }
 }
 
-fn load_level(path: &'static str) -> tiled::Map {
+fn load_level(path: &str) -> tiled::Map {
     let mut loader = Loader::with_reader(|path: &std::path::Path| -> std::io::Result<_> {
         tiled_file!(path, "./levels/test.tmx");
         tiled_file!(path, "./levels/locked_mixers.tmx");
         tiled_file!(path, "./levels/hook_something.tmx");
+        tiled_file!(path, "./levels/intro_mix.tmx");
+        tiled_file!(path, "./levels/intro.tmx");
+        tiled_file!(path, "./levels/intro_mix_simpler.tmx");
         tiled_file!(path, "./levels/tileset.tsx");
 
         Err(std::io::ErrorKind::NotFound.into())
@@ -306,7 +309,7 @@ impl Level {
         self.floor_meshes.push(instance);
     }
 
-    pub fn new_from_map(map_path: &'static str, engine: &PonyGame, assets: &Assets) -> Level {
+    pub fn new_from_map(map_path: &str, engine: &PonyGame, assets: &Assets) -> Level {
 
         const WALL_TL: u32 = 0;
         const WALL_T : u32 = 1;

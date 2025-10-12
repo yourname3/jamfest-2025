@@ -38,7 +38,7 @@ pub trait Gameplay {
     const DEFAULT_TONEMAP: Tonemap;
     fn new(engine: &mut PonyGame) -> Self;
     fn tick(&mut self, engine: &mut PonyGame);
-    fn ui(&mut self, ctx: &egui::Context);
+    fn ui(&mut self, engine: &mut PonyGame, ctx: &egui::Context);
 }
 
 struct PonyGameApp<G: Gameplay> {
@@ -121,7 +121,7 @@ impl<G: Gameplay> ApplicationHandler<PonyGameAppEvent> for PonyGameApp<G> {
             _ => {}
         }
 
-        let should_exit = engine.video.handle_win_event::<G>(gameplay, window_id, event, &mut engine.egui);
+        let should_exit = Video::handle_win_event::<G>(engine, gameplay, window_id, event);
         if should_exit {
             event_loop.exit();
         }
