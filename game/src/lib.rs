@@ -17,20 +17,30 @@ use ponygame::{audio::Sound, gc::{Gp, GpMaybe}, video::{asset_import::import_bin
 
 use level::*;
 
+// Used cause each material has separate decals, and we need to be able to swap
+// out the color.
+// 
+// TODO / IMPROVEMENT: Make decals a per-meshinstance binding.
+pub struct LockUnlockMat {
+    pub locked_mat: Gp<PBRMaterial>,
+    pub unlocked_mat: Gp<PBRMaterial>,
+}
+
 struct Assets {
     horse_mesh: Gp<Mesh>,
     horse_material: Gp<PBRMaterial>,
 
     node_mix: Gp<Mesh>,
     
-    node_mix_mat: Gp<PBRMaterial>,
+    node_mix_mat: LockUnlockMat,
 
     laser: Gp<Mesh>,
     laser_mat: Gp<PBRMaterial>,
 
     emitter: Gp<Mesh>,
-    emitter_mat: Gp<PBRMaterial>,
+    emitter_mat: LockUnlockMat,
 
+    select_vert_1: Gp<Mesh>,
     select_vert_2: Gp<Mesh>,
     select_mat: Gp<PBRMaterial>,
 
@@ -38,7 +48,7 @@ struct Assets {
     floor_tile_mat: Gp<PBRMaterial>,
 
     goal: Gp<Mesh>,
-    goal_mat: Gp<PBRMaterial>,
+    goal_mat: LockUnlockMat,
     goal_light: Gp<Mesh>,
     goal_light_mat: Gp<PBRMaterial>,
 
@@ -63,10 +73,12 @@ struct Assets {
 
 enum SelectorState {
     None,
+    Vert1,
     Vert2,
 }
 
 struct Selector {
+    mesh_vert_1: Gp<MeshInstance>,
     mesh_vert_2: Gp<MeshInstance>,
 
     state: SelectorState,
@@ -81,12 +93,17 @@ struct Selector {
 }
 
 impl Selector {
+    fn mk_mesh_instance(ctx: &RenderCtx, assets: &Assets, mesh: &Gp<Mesh>) -> Gp<MeshInstance> {
+        Gp::new(MeshInstance::new(ctx,
+            mesh.clone(),
+            assets.select_mat.clone(),
+            Matrix4::identity()))
+    }
+
     pub fn new(ctx: &RenderCtx, assets: &Assets) -> Self {
         Selector {
-            mesh_vert_2: Gp::new(MeshInstance::new(ctx,
-                assets.select_vert_2.clone(),
-                assets.select_mat.clone(),
-                Matrix4::identity())),
+            mesh_vert_1: Self::mk_mesh_instance(ctx, assets, &assets.select_vert_1),
+            mesh_vert_2: Self::mk_mesh_instance(ctx, assets, &assets.select_vert_2),
             state: SelectorState::None,
             object: GpMaybe::none(),
             x: 0,
@@ -102,6 +119,7 @@ impl Selector {
     fn get_current_mesh(&self) -> Option<&Gp<MeshInstance>> {
         match self.state {
             SelectorState::None => None,
+            SelectorState::Vert1 => Some(&self.mesh_vert_1),
             SelectorState::Vert2 => Some(&self.mesh_vert_2),
         }
     }
@@ -168,6 +186,9 @@ impl Selector {
             for y in 0..level.grid.rows() {
                 let cell = level.grid.get(y, x).unwrap();
                 if let GridCell::DeviceRoot(dev) = cell {
+                    // Can't move locked devices.
+                    if dev.locked { continue; }
+
                     let bounds = dev.ty.get_bounds();
                     let low_point = vec3(x as f32, 0.0, y as f32);
                     let high_point = vec3(low_point.x + bounds.0 as f32, 0.0, low_point.z + bounds.1 as f32);
@@ -231,6 +252,28 @@ macro_rules! sfx {
     }
 }
 
+macro_rules! lock_unlock {
+    ($ctx:expr, $lock_data:expr, $decal_path:expr) => {
+        {
+            let decal_texture = texture_srgb!($ctx, $decal_path);
+            LockUnlockMat {
+                locked_mat: Gp::new(PBRMaterial {
+                    albedo_texture: $lock_data.0.clone(),
+                    metallic_roughness_texture: $lock_data.1.clone(),
+                    albedo_decal_texture: decal_texture.clone(),
+                    ..PBRMaterial::default($ctx)
+                }),
+                unlocked_mat: Gp::new(PBRMaterial {
+                    albedo_texture: $lock_data.2.clone(),
+                    metallic_roughness_texture: $lock_data.3.clone(),
+                    albedo_decal_texture: decal_texture,
+                    ..PBRMaterial::default($ctx)
+                }),
+            }
+        }
+    }
+}
+
 impl Assets {
     pub fn new(engine: &mut PonyGame) -> Self {
         let ctx = engine.render_ctx();
@@ -240,6 +283,22 @@ impl Assets {
 
         let metal_046_a = texture_linear!(ctx, "./assets/mat/metal_046/albedo.png");
         let metal_046_m = texture_linear!(ctx, "./assets/mat/metal_046/pbr.png");
+
+        let metal_028_a = texture_linear!(ctx, "./assets/mat/metal_028/albedo.png");
+        let metal_028_m = texture_linear!(ctx, "./assets/mat/metal_028/pbr.png");
+
+        // brass:
+        // texture_linear!(ctx, "./assets/mat/brass_4k/albedo.png"),
+        // texture_linear!(ctx, "./assets/mat/brass_4k/pbr.png"),
+
+        let lock_data = (
+            // locked texture
+            metal_028_a.clone(),
+            metal_028_m.clone(),
+            // unlocked texture
+            metal_031_a.clone(),
+            metal_031_m.clone(),
+        );
 
         let [
             wall_tl, wall_t, wall_tr,
@@ -273,25 +332,12 @@ impl Assets {
             }),
 
             node_mix: mesh!(ctx, "./assets/mix_node.glb"),
-            node_mix_mat: Gp::new(PBRMaterial {
-                metallic: 1.0,
-                roughness: 1.0,
-                reflectance: 0.5,
-                //albedo: vec3(0.5, 0.5, 0.5),
-                albedo_texture: metal_031_a.clone(),
-                metallic_roughness_texture: metal_031_m.clone(),
-                albedo_decal_texture: texture_srgb!(ctx, "./assets/label_mix.png"),
-                ..PBRMaterial::default(ctx)
-            }),
+            node_mix_mat: lock_unlock!(ctx, lock_data, "./assets/label_mix.png"),
 
             emitter: mesh!(ctx, "./assets/emitter.glb"),
-            emitter_mat: Gp::new(PBRMaterial {
-                albedo_texture: texture_linear!(ctx, "./assets/mat/brass_4k/albedo.png"),
-                metallic_roughness_texture: texture_linear!(ctx, "./assets/mat/brass_4k/pbr.png"),
-                albedo_decal_texture: texture_srgb!(ctx, "./assets/emitter_label.png"),
-                ..PBRMaterial::default(ctx)
-            }),
+            emitter_mat: lock_unlock!(ctx, lock_data, "./assets/emitter_label.png"),
 
+            select_vert_1: mesh!(ctx, "./assets/select_vert_1.glb"),
             select_vert_2: mesh!(ctx, "./assets/select_vert_2.glb"),
             select_mat: Gp::new(PBRMaterial {
                 shader: Gp::new(PBRShader::new(ctx, "select.wgsl", include_str!("./shaders/select.wgsl"))),
@@ -306,12 +352,7 @@ impl Assets {
             }),
 
             goal: mesh!(ctx, "./assets/goal_node.glb"),
-            goal_mat: Gp::new(PBRMaterial {
-                albedo_texture: metal_031_a.clone(),
-                metallic_roughness_texture: metal_031_m.clone(),
-                albedo_decal_texture: texture_srgb!(ctx, "./assets/goal_label.png"),
-                ..PBRMaterial::default(ctx)
-            }),
+            goal_mat: lock_unlock!(ctx, lock_data, "./assets/goal_label.png"),
 
             goal_light: mesh!(ctx, "./assets/goal_node_light.glb"),
             goal_light_mat: Gp::new(PBRMaterial {
@@ -347,12 +388,12 @@ impl Assets {
         }
     }
 
-    fn node_mix(&self, ctx: &RenderCtx, transform: cgmath::Matrix4<f32>) -> Gp<MeshInstance> {
-        Gp::new(MeshInstance::new(ctx,
-            self.node_mix.clone(),
-            self.node_mix_mat.clone(),
-            transform))
-    }
+    // fn node_mix(&self, ctx: &RenderCtx, transform: cgmath::Matrix4<f32>) -> Gp<MeshInstance> {
+    //     Gp::new(MeshInstance::new(ctx,
+    //         self.node_mix.clone(),
+    //         self.node_mix_mat.clone(),
+    //         transform))
+    // }
 
     fn laser(&self, ctx: &RenderCtx, transform: cgmath::Matrix4<f32>, color: Vector3<f32>) -> Gp<MeshInstance> {
         Gp::new(MeshInstance::new_modulate(ctx,
@@ -416,7 +457,7 @@ impl ponygame::Gameplay for GameplayLogic {
             zoom: 10.0,
         });
 
-        let mut level = Level::new_from_map("./levels/test.tmx", engine, &assets);
+        let mut level = Level::new_from_map("./levels/locked_mixers.tmx", engine, &assets);
        // for i in 0..5 {
         //level.try_place(2, 2, DeviceTy::Mix);
         

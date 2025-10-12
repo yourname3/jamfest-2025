@@ -45,12 +45,12 @@ impl DeviceTy {
         match self {
             DeviceTy::Mix => SelectorState::Vert2,
             // Not selectable
-            DeviceTy::Emitter(_) => SelectorState::None,
-            DeviceTy::Goal(_) => SelectorState::None,
+            DeviceTy::Emitter(_) => SelectorState::Vert1,
+            DeviceTy::Goal(_) => SelectorState::Vert1,
         }
     }
 
-    pub fn mk_mesh_instance(&self, engine: &PonyGame, assets: &Assets, transform: cgmath::Matrix4<f32>) -> Gp<MeshInstance> {
+    pub fn mk_mesh_instance(&self, engine: &PonyGame, assets: &Assets, locked: bool, transform: cgmath::Matrix4<f32>) -> Gp<MeshInstance> {
         let (mesh, mat) = match self {
             DeviceTy::Mix => (&assets.node_mix, &assets.node_mix_mat),
             DeviceTy::Emitter(_) => (&assets.emitter, &assets.emitter_mat),
@@ -59,7 +59,7 @@ impl DeviceTy {
         Gp::new(MeshInstance::new(
             engine.render_ctx(),
             mesh.clone(),
-            mat.clone(),
+            if locked { &mat.locked_mat } else { &mat.unlocked_mat }.clone(),
             transform
         ))
     }
@@ -90,6 +90,7 @@ impl DeviceTy {
 pub struct Device {
     pub x: Cell<i32>,
     pub y: Cell<i32>,
+    pub locked: bool,
     pub ty: DeviceTy,
 }
 gc!(Device, 0x00080000_u64);
@@ -156,6 +157,7 @@ macro_rules! tiled_file {
 fn load_level(path: &'static str) -> tiled::Map {
     let mut loader = Loader::with_reader(|path: &std::path::Path| -> std::io::Result<_> {
         tiled_file!(path, "./levels/test.tmx");
+        tiled_file!(path, "./levels/locked_mixers.tmx");
         tiled_file!(path, "./levels/tileset.tsx");
 
         Err(std::io::ErrorKind::NotFound.into())
@@ -342,6 +344,11 @@ impl Level {
 
             let x = f32::floor(obj.x / 32.0) as i32;
             let y = f32::floor( (obj.y - 32.0) / 32.0) as i32;
+            let locked = match obj.properties.get("locked") {
+                Some(PropertyValue::BoolValue(locked)) => *locked,
+                // Default to unlocked.
+                _ => false,
+            };
 
             match id {
                 EMITTER | GOAL => {
@@ -358,10 +365,10 @@ impl Level {
                     // Use force place because level objects can be overlapping
                     // the void / the partial-void.
                     // Note: Tiled's Y positions are very weird. Subtract 32
-                    level.force_place(x, y, ty);
+                    level.force_place(x, y, ty, locked);
                 },
                 MIX => {
-                    level.force_place(x, y, DeviceTy::Mix)
+                    level.force_place(x, y, DeviceTy::Mix, locked)
                 }
                 _ => {}
             }
@@ -437,11 +444,11 @@ impl Level {
         }
     }
 
-    fn force_place(&mut self, x: i32, y: i32, ty: DeviceTy) {
+    fn force_place(&mut self, x: i32, y: i32, ty: DeviceTy, locked: bool) {
         log::info!("placed {:?} @ {},{}", ty, x, y);
 
         let device = Gp::new(Device {
-            x: Cell::new(x), y: Cell::new(y), ty: ty.clone()
+            x: Cell::new(x), y: Cell::new(y), ty: ty.clone(), locked
         });
 
         self.force_place_existing(x, y, &device);
@@ -467,13 +474,13 @@ impl Level {
         return true;
     }
 
-    pub fn try_place(&mut self, x: i32, y: i32, ty: DeviceTy) {
-        log::info!("try_place @ {},{}", x, y);
+    // pub fn try_place(&mut self, x: i32, y: i32, ty: DeviceTy) {
+    //     log::info!("try_place @ {},{}", x, y);
 
-        if !self.may_place_at(x, y, &ty) { return; }
+    //     if !self.may_place_at(x, y, &ty) { return; }
 
-        self.force_place(x, y, ty);
-    }
+    //     self.force_place(x, y, ty);
+    // }
 
     /// Removes the given device's bounding box from the given location.
     /// Should only be called if we believe the device is at that loccation.
@@ -535,7 +542,7 @@ impl Level {
                             value.color))
                     }
 
-                    engine.main_world.push_mesh(device.ty.mk_mesh_instance(engine, assets, mat))
+                    engine.main_world.push_mesh(device.ty.mk_mesh_instance(engine, assets, device.locked, mat))
                 },
                 _ => {}
             }

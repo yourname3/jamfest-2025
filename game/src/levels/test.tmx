@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="30" height="20" tilewidth="32" tileheight="32" infinite="0" nextlayerid="5" nextobjectid="9">
+<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="30" height="20" tilewidth="32" tileheight="32" infinite="0" nextlayerid="5" nextobjectid="10">
  <tileset firstgid="1" source="tileset.tsx"/>
  <layer id="1" name="floor" width="30" height="20">
   <data encoding="csv">
@@ -29,18 +29,25 @@
   <object id="2" gid="4" x="0" y="96" width="32" height="32">
    <properties>
     <property name="color" type="color" value="#ffff0000"/>
+    <property name="locked" type="bool" value="false"/>
    </properties>
   </object>
-  <object id="3" gid="4" x="0" y="128" width="32" height="32">
+  <object id="9" gid="4" x="0" y="128" width="32" height="32">
    <properties>
-    <property name="color" type="color" value="#ff00ff00"/>
+    <property name="color" type="color" value="#ffff0000"/>
+    <property name="locked" type="bool" value="false"/>
    </properties>
   </object>
   <object id="4" gid="5" x="192" y="128" width="32" height="32">
    <properties>
     <property name="color" type="color" value="#ffffff00"/>
+    <property name="locked" type="bool" value="false"/>
    </properties>
   </object>
-  <object id="8" gid="6" x="192" y="64" width="32" height="32"/>
+  <object id="8" gid="6" x="192" y="64" width="32" height="32">
+   <properties>
+    <property name="locked" type="bool" value="false"/>
+   </properties>
+  </object>
  </objectgroup>
 </map>
