@@ -167,6 +167,7 @@ struct BrdfOut {
 
     Fd: vec3f,
     Fr: vec3f,
+    Fr_noD: vec3f,
 
     brdf: vec3f,
 
@@ -216,6 +217,7 @@ fn BRDF_Fr_h(bin: BrdfIn, h: vec3f) -> BrdfOut {
     // divide by D. This is not the most efficient--we could simply delete the
     // multiplication and division in that case--but to ensure that all the
     // shaders are using the same BRDF I did it this way for now.
+    bout.Fr_noD = bout.V * bout.F;
     bout.Fr = (bout.D * bout.V) * bout.F;
 
     return bout;
@@ -256,7 +258,10 @@ fn BRDF_envmap(bin_immut: BrdfIn) -> vec3f {
 
     let b = BRDF_Fr(bin);
 
-    let Fr = 4.0 * b.NoV * b.Fr * Il * b.NoL / b.D;
+    // instead of dividing by D here, which can result in NaN and such, just
+    // don't include it in the first place
+    let Fr = 4.0 * b.NoV * b.Fr_noD * Il * b.NoL;
+    //let Fr = 4.0 * b.NoV * b.Fr * Il * b.NoL / clamp(b.D, 0.001, 1.0);
 
     return Fd + Fr;
 }
@@ -283,7 +288,7 @@ fn pbr_main(in: VertexOutput) -> @location(0) vec4f {
     bin.v = -normalize(in.f_pos);
     bin.n = param.normal;
 
-    var sum = vec3(0.0);
+    var sum = vec3f(0.0);
     for(var i = 0; i < 1; i += 1) {
         // These are currently passed in eye-space.
         var l_direction = lights[i].direction;
@@ -328,21 +333,19 @@ fn pbr_default(in: VertexOutput) -> PBROut {
 
     let albedo_decal = textureSample(albedo_decal_t, pbr_s, in.uv2);
 
+    var mr_data = textureSample(metallic_rough_t, pbr_s, in.uv);
+    let mr_decal_data = textureSample(metallic_rough_decal_t, pbr_s, in.uv2);
+
     out.metallic = pbr.metallic;
     var perceptual_roughness = pbr.roughness;
     // TODO: Should this be gated behind a flag? Is the dummy texture lookup
     // slow enough?
-    if true {
-        var data = textureSample(metallic_rough_t, pbr_s, in.uv);
-        
-        if albedo_decal.a > 0 {
-            let data2 = textureSample(metallic_rough_decal_t, pbr_s, in.uv2);
-            data = mix(data, data2, albedo_decal.a);
-        }
-        // Compute based on textures
-        out.metallic *= data.b;
-        perceptual_roughness *= data.g;
+    if albedo_decal.a > 0 {
+        mr_data = mix(mr_data, mr_decal_data, albedo_decal.a);
     }
+    // Compute based on textures
+    out.metallic *= mr_data.b;
+    perceptual_roughness *= mr_data.g;
 
     var reflectance = pbr.reflectance;
 
