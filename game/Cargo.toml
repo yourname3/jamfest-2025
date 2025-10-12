@@ -24,6 +24,9 @@ name = "game"
 path = "src/main.rs"
 
 [dependencies]
+egui = "0.33.0"
+egui-wgpu = "0.33.0"
+egui-winit = "0.33.0"
 grid = "1.0.0"
 inline_tweak = { path = "../inline_tweak", features = ["derive"] }
 ponygame = { version = "0.1.0", path = "../ponygame" }

@@ -1,6 +1,7 @@
 use std::f32::consts::PI;
 
 mod level;
+mod ui;
 
 use grid::Grid;
 use inline_tweak::tweak;

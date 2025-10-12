@@ -22,6 +22,9 @@ asset-importer-rs-gltf = "0.3.0"
 asset-importer-rs-scene = "0.3.0"
 bytemuck = { version = "1.23.2", features = ["derive"] }
 cgmath = "0.18.0"
+egui = "0.33.0"
+egui-wgpu = "0.33.0"
+egui-winit = "0.33.0"
 env_logger = "0.11.8"
 image = { version = "0.25.8", default-features = false, features = ["exr", "png"] }
 log = "0.4.28"

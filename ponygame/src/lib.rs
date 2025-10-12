@@ -11,6 +11,7 @@ pub mod error;
 pub mod video;
 pub mod gc;
 pub mod gc_types;
+pub mod ui;
 
 /// Our custom user event for winit. Used in part for asynchronously initializing
 /// the app in browser.
@@ -25,6 +26,8 @@ pub struct PonyGame {
     // TODO: We really need to be able to access the Window, Viewport, etc...
     pub main_world: Gp<World>,
     pub main_camera: Gp<Camera>,
+
+    pub egui: ui::Egui,
 
     last_tick: web_time::Instant,
     accumulator: web_time::Duration,
@@ -116,7 +119,7 @@ impl<G: Gameplay> ApplicationHandler<PonyGameAppEvent> for PonyGameApp<G> {
             _ => {}
         }
 
-        let should_exit = engine.video.handle_win_event(window_id, event);
+        let should_exit = engine.video.handle_win_event(window_id, event, &mut engine.egui);
         if should_exit {
             event_loop.exit();
         }

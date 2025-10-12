@@ -8,12 +8,13 @@ pub mod world;
 
 use std::{cell::{Cell, RefCell}, collections::HashMap, mem::MaybeUninit, rc::Rc};
 use cgmath::{vec3, Vector2, Zero};
+use egui::FullOutput;
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 
 use wgpu::util::DeviceExt;
 use winit::{dpi::{PhysicalSize, Size}, event::{MouseButton, WindowEvent}, event_loop::{ActiveEventLoop, EventLoopProxy}, window::{WindowAttributes, WindowId}};
 
-use crate::{gc::{Gp, GpMaybe}, video::{camera::Camera, hdr_tonemap::HdrTonemapPipeline, sky_pipeline::SkyPipeline, texture::{DepthTexture, Texture}, world::{Viewport, World}}, PonyGame, PonyGameAppEvent};
+use crate::{gc::{Gp, GpMaybe}, ui::Egui, video::{camera::Camera, hdr_tonemap::HdrTonemapPipeline, sky_pipeline::SkyPipeline, texture::{DepthTexture, Texture}, world::{Viewport, World}}, PonyGame, PonyGameAppEvent};
 
 // Bundles together all the global state that a given part of the renderer might
 // need, i.e. the device, queue, etc.
@@ -174,7 +175,7 @@ pub struct Renderer {
 
 pub struct PerWindowRenderer {
     surface: wgpu::Surface<'static>,
-    config: wgpu::SurfaceConfiguration,
+    pub config: wgpu::SurfaceConfiguration,
     is_surface_configured: bool,
 
     pub viewport: Viewport,
@@ -407,7 +408,59 @@ impl PerWindowRenderer {
         }
     }
 
-    fn render(&self, renderer: &Renderer, window: &winit::window::Window) -> Result<(), wgpu::SurfaceError> {
+     fn render_egui(&self, renderer: &Renderer, encoder: &mut wgpu::CommandEncoder, output_view: &wgpu::TextureView, egui: &mut Egui, window: &Window, full_output: FullOutput) {
+        let screen_descriptor = egui_wgpu::ScreenDescriptor {
+            size_in_pixels: [window.renderer.config.width, window.renderer.config.height],
+            pixels_per_point: window.sdl.scale_factor() as f32,
+        };
+
+        for (id, image_delta) in &full_output.textures_delta.set {
+            egui.egui_renderer.update_texture(&renderer.ctx.device,
+                &renderer.ctx.queue, *id, image_delta);
+        }
+
+        let paint_jobs = egui.egui_ctx.tessellate(
+            full_output.shapes, 
+            window.sdl.scale_factor() as f32);
+
+        egui.egui_renderer.update_buffers(
+            &renderer.ctx.device, 
+            &renderer.ctx.queue,
+            encoder, 
+            &paint_jobs,
+            &screen_descriptor);
+
+        {
+            let pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: Some("egui_pass"),
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view: output_view,
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Load,
+                        store: wgpu::StoreOp::Store,
+                    },
+                    depth_slice: None,
+                })],
+                depth_stencil_attachment: None,
+                occlusion_query_set: None,
+                timestamp_writes: None
+            });
+            // for egui...
+            let mut pass = pass.forget_lifetime();
+            egui.egui_renderer.render(
+                &mut pass,
+                &paint_jobs,
+                &screen_descriptor
+            );
+        }
+
+        for id in &full_output.textures_delta.free {
+            egui.egui_renderer.free_texture(id);
+        }
+    }
+
+    fn render(&self, renderer: &Renderer, egui: &mut Egui, window: &Window, full_output: FullOutput) -> Result<(), wgpu::SurfaceError> {
         if !self.is_surface_configured { return Ok(()) }
 
         let output = self.surface.get_current_texture()?;
@@ -421,9 +474,11 @@ impl PerWindowRenderer {
 
         self.viewport.render(renderer, &mut encoder, &output_view);
 
+        self.render_egui(renderer, &mut encoder, &output_view, egui, window, full_output);
+
         renderer.ctx.queue.submit(std::iter::once(encoder.finish()));
 
-        window.pre_present_notify();
+        window.sdl.pre_present_notify();
 
         output.present();
 
@@ -641,7 +696,7 @@ impl Renderer {
 // For now, this is private, because we can't really let stuff look at it.
 // Could wrap it as a private member of a public struct.
 pub struct Window {
-    sdl: winit::window::Window,
+    pub sdl: winit::window::Window,
     pub renderer: PerWindowRenderer,
 
     pub cursor_position: Vector2<f32>,
@@ -684,11 +739,15 @@ impl Video {
             renderer,
         };
 
+        let egui = Egui::new(&video);
+
         let engine = PonyGame {
             video,
             audio: crate::audio::Audio::initial(),
             main_world: world,
             main_camera: camera,
+
+            egui,
 
             accumulator: web_time::Duration::from_micros(0),
             last_tick: web_time::Instant::now(),
@@ -776,13 +835,28 @@ impl Video {
     }
 
     /// For now, returns whether we should now close the application.
-    pub fn handle_win_event(&mut self, window_id: WindowId, win_event: WindowEvent) -> bool {
+    pub fn handle_win_event(&mut self, window_id: WindowId, win_event: WindowEvent, egui: &mut Egui) -> bool {
         let Some(window) = self.id_map.get_mut(&window_id) else { return false; };
+
+        // TODO: Probably each Window should get its own EGUI
+        let egui_res = egui.egui_state.on_window_event(&window.sdl, &win_event);
+        if egui_res.repaint { window.sdl.request_redraw(); }
+        if egui_res.consumed { return false; }
 
         match win_event {
             WindowEvent::RedrawRequested => {
                 //  TODO: How do we handle this per-window?
-                self.render();
+                let raw_input = egui.egui_state.take_egui_input(&window.sdl);
+                let full_output = egui.egui_ctx.run(raw_input, |ctx| {
+                    egui::CentralPanel::default().show(ctx, |ui| {
+                        ui.heading("Test UI");
+                    });
+                });
+                // TODO: Call this somehow...
+                // egui.egui_state.handle_platform_output(&window.sdl, full_output.platform_output);
+
+                // This is an ugly hack... We should really fix this...
+                self.render(egui, full_output);
 
                 self.id_map.get(&window_id).unwrap().sdl.request_redraw();
             }
@@ -811,11 +885,15 @@ impl Video {
         return false;
     }
 
-    pub fn render(&mut self) {
+    pub fn render(&mut self, egui: &mut Egui, full_output: FullOutput) {
         for window in self.id_map.values_mut() {
-            if let Err(err) = window.renderer.render(&self.renderer, &window.sdl) {
+            if let Err(err) = window.renderer.render(&self.renderer, egui, &window, full_output) {
                 log::warn!("renderer: error: {}", err);
             }
+
+            // Hack because we move full_output. Needs to be patched for multi-window
+            // support.
+            return;
         }
     }
 }
