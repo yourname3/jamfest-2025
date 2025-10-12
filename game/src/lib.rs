@@ -742,7 +742,7 @@ impl ponygame::Gameplay for GameplayLogic {
                 egui::Area::new(egui::Id::new("lvl_menu"))
                     .fixed_pos((4.0, 4.0))
                     .show(ctx, |ui| {
-                        ui.heading(format!("Level {}", self.cur_level_idx));
+                        ui.heading(format!("Level {}", (self.cur_level_idx + 1)));
                         if ui.button("Quit").clicked() {
                             self.state = GameplayState::LevelSelect;
                             self.click(engine);
