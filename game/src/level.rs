@@ -144,6 +144,35 @@ impl DeviceTy {
                 });
             },
 
+            DeviceTy::Swap => {
+                let Some(Some(left)) = ends_h.get(y as usize, x as usize) else { return false; };
+                let Some(Some(right)) = ends_h.get(y as usize + 2, x as usize + 1) else { return false; };
+
+                lasers.push(Laser {
+                    x: x, y: y, length: 0,
+                    value: LaserValue::color(right.color)
+                });
+
+                lasers.push(Laser {
+                    x: x + 1, y: y + 2, length: 0,
+                    value: LaserValue::color(left.color)
+                });
+            }
+
+            DeviceTy::Collect => {
+                let ty = {
+                    if let Some(Some(a)) = ends_h.get(y as usize, x as usize) { a }
+                    else if let Some(Some(b)) = ends_h.get(y as usize + 1, x as usize) { b }
+                    else if let Some(Some(c)) = ends_h.get(y as usize + 2, x as usize) { c }
+                    else { return false; }
+                };
+
+                lasers.push(Laser {
+                    x, y: y + 1, length: 0,
+                    value: LaserValue::color(ty.color)
+                });
+            }
+
             // TODO: Implement the gameplay logic.
             _ => {}
         }
@@ -228,6 +257,7 @@ fn load_level(path: &str) -> tiled::Map {
         tiled_file!(path, "./levels/intro_mix_simpler.tmx");
         tiled_file!(path, "./levels/intro_mix_constrained.tmx");
         tiled_file!(path, "./levels/tileset.tsx");
+        tiled_file!(path, "./levels/crazy_swaps.tmx");
 
         Err(std::io::ErrorKind::NotFound.into())
     });

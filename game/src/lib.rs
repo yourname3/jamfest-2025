@@ -698,11 +698,12 @@ macro_rules! tweak_vec3 {
     };
 }
 
-static LEVELS: [&str; 5] = [
+static LEVELS: [&str; 6] = [
     "intro",
     "intro_mix_simpler",
     "intro_mix",
     "locked_mixers",
+    "crazy_swaps",
     "intro_mix_constrained",
 ];
 
@@ -863,6 +864,7 @@ impl ponygame::Gameplay for GameplayLogic {
 
                         let mut nr = 1;
                         for level in LEVELS {
+                            log::info!("level select: {} {}", nr, level);
                             let label = format!("Level {}", nr);
                             if ui.button(label).clicked() {
                                 self.open_level(engine, nr - 1);
