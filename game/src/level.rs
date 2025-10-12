@@ -22,6 +22,7 @@ pub enum DeviceTy {
     Mix,
     Emitter(LaserValue),
     Goal(LaserValue),
+    Hook,
 }
 
 impl DeviceTy {
@@ -30,6 +31,7 @@ impl DeviceTy {
             DeviceTy::Mix => &[(0, 0), (0, 1)],
             DeviceTy::Emitter(_) => &[(0, 0)],
             DeviceTy::Goal(_) => &[(0, 0)],
+            DeviceTy::Hook => &[(0, 0), (0, 1)],
         }
     }
 
@@ -37,7 +39,8 @@ impl DeviceTy {
         match self {
             DeviceTy::Mix => (1, 2),
             DeviceTy::Emitter(_) => (1, 1),
-            DeviceTy::Goal(_) => (1, 1)
+            DeviceTy::Goal(_) => (1, 1),
+            DeviceTy::Hook => (1, 2),
         }
     }
 
@@ -47,6 +50,7 @@ impl DeviceTy {
             // Not selectable
             DeviceTy::Emitter(_) => SelectorState::Vert1,
             DeviceTy::Goal(_) => SelectorState::Vert1,
+            DeviceTy::Hook => SelectorState::Vert2,
         }
     }
 
@@ -55,6 +59,7 @@ impl DeviceTy {
             DeviceTy::Mix => (&assets.node_mix, &assets.node_mix_mat),
             DeviceTy::Emitter(_) => (&assets.emitter, &assets.emitter_mat),
             DeviceTy::Goal(_) => (&assets.goal, &assets.goal_mat),
+            DeviceTy::Hook => (&assets.node_hook, &assets.node_hook_mat),
         };
         Gp::new(MeshInstance::new(
             engine.render_ctx(),
@@ -82,6 +87,18 @@ impl DeviceTy {
             },
             DeviceTy::Goal(value) => {
                 // TODO: Count goal fulfills here?
+            },
+            DeviceTy::Hook => {
+                let Some(Some(input)) = ends_h.get(y as usize, x as usize) else { return; };
+
+                lasers.push(Laser {
+                    x, y, length: 0,
+                    value: input.clone()
+                });
+                lasers.push(Laser {
+                    x, y: y + 1, length: 0,
+                    value: input.clone()
+                });
             }
         }
     }
@@ -158,6 +175,7 @@ fn load_level(path: &'static str) -> tiled::Map {
     let mut loader = Loader::with_reader(|path: &std::path::Path| -> std::io::Result<_> {
         tiled_file!(path, "./levels/test.tmx");
         tiled_file!(path, "./levels/locked_mixers.tmx");
+        tiled_file!(path, "./levels/hook_something.tmx");
         tiled_file!(path, "./levels/tileset.tsx");
 
         Err(std::io::ErrorKind::NotFound.into())
@@ -261,6 +279,7 @@ impl Level {
         const GOAL   : u32 = 4;
 
         const MIX    : u32 = 5;
+        const HOOK   : u32 = 6;
 
         let map = load_level(map_path);
 
@@ -369,6 +388,9 @@ impl Level {
                 },
                 MIX => {
                     level.force_place(x, y, DeviceTy::Mix, locked)
+                },
+                HOOK => {
+                    level.force_place(x, y, DeviceTy::Hook, locked)
                 }
                 _ => {}
             }

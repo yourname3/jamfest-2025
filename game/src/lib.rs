@@ -33,8 +33,9 @@ struct Assets {
     horse_material: Gp<PBRMaterial>,
 
     node_mix: Gp<Mesh>,
-    
     node_mix_mat: LockUnlockMat,
+    node_hook: Gp<Mesh>,
+    node_hook_mat: LockUnlockMat,
 
     laser: Gp<Mesh>,
     laser_mat: Gp<PBRMaterial>,
@@ -335,6 +336,8 @@ impl Assets {
 
             node_mix: mesh!(ctx, "./assets/mix_node.glb"),
             node_mix_mat: lock_unlock!(ctx, lock_data, "./assets/label_mix.png"),
+            node_hook: mesh!(ctx, "./assets/hook_node.glb"),
+            node_hook_mat: lock_unlock!(ctx, lock_data, "./assets/hook_label.png"),
 
             emitter: mesh!(ctx, "./assets/emitter.glb"),
             emitter_mat: lock_unlock!(ctx, lock_data, "./assets/emitter_label.png"),
@@ -468,7 +471,7 @@ impl ponygame::Gameplay for GameplayLogic {
             zoom: 10.0,
         });
 
-        let mut level = Level::new_from_map("./levels/locked_mixers.tmx", engine, &assets);
+        let mut level = Level::new_from_map("./levels/hook_something.tmx", engine, &assets);
        // for i in 0..5 {
         //level.try_place(2, 2, DeviceTy::Mix);
         
