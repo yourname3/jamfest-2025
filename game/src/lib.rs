@@ -663,6 +663,7 @@ impl ponygame::Gameplay for GameplayLogic {
     }
 
     fn ui(&mut self, ctx: &egui::Context) {
+        ctx.set_zoom_factor(4.0);
         match self.state {
             GameplayState::Level => {
                 egui::Area::new(egui::Id::new("test"))

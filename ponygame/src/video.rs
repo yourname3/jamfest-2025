@@ -412,7 +412,7 @@ impl PerWindowRenderer {
      fn render_egui(&self, renderer: &Renderer, encoder: &mut wgpu::CommandEncoder, output_view: &wgpu::TextureView, egui: &mut Egui, window: &Window, full_output: FullOutput) {
         let screen_descriptor = egui_wgpu::ScreenDescriptor {
             size_in_pixels: [window.renderer.config.width, window.renderer.config.height],
-            pixels_per_point: window.sdl.scale_factor() as f32,
+            pixels_per_point: window.egui_pixels_per_point() as f32,
         };
 
         for (id, image_delta) in &full_output.textures_delta.set {
@@ -422,7 +422,7 @@ impl PerWindowRenderer {
 
         let paint_jobs = egui.egui_ctx.tessellate(
             full_output.shapes, 
-            window.sdl.scale_factor() as f32);
+            window.egui_pixels_per_point() as f32);
 
         egui.egui_renderer.update_buffers(
             &renderer.ctx.device, 
@@ -703,6 +703,12 @@ pub struct Window {
     pub cursor_position: Vector2<f32>,
 
     pub left_mouse_down: bool,
+}
+
+impl Window {
+    pub fn egui_pixels_per_point(&self) -> f64 {
+        self.sdl.scale_factor() * 4.0
+    }
 }
 
 pub struct Video {
