@@ -37,6 +37,11 @@ struct Assets {
     floor_tile: Gp<Mesh>,
     floor_tile_mat: Gp<PBRMaterial>,
 
+    goal: Gp<Mesh>,
+    goal_mat: Gp<PBRMaterial>,
+    goal_light: Gp<Mesh>,
+    goal_light_mat: Gp<PBRMaterial>,
+
     wall_tl: Gp<Mesh>,
     wall_t: Gp<Mesh>,
     wall_tr: Gp<Mesh>,
@@ -254,6 +259,8 @@ impl Assets {
             "wall-tl-i", "wall-tr-i", "wall-bl-i", "wall-br-i",
         ]).unwrap();
 
+        let laser_shader = Gp::new(PBRShader::new(ctx, "laser.wgsl", include_str!("./shaders/laser.wgsl")));
+
         Assets {
             horse_mesh: mesh!(ctx, "../test/horse.glb"),
             horse_material: Gp::new(PBRMaterial {
@@ -298,6 +305,19 @@ impl Assets {
                 ..PBRMaterial::default(ctx)
             }),
 
+            goal: mesh!(ctx, "./assets/goal_node.glb"),
+            goal_mat: Gp::new(PBRMaterial {
+                albedo_texture: metal_031_a.clone(),
+                metallic_roughness_texture: metal_031_m.clone(),
+                ..PBRMaterial::default(ctx)
+            }),
+
+            goal_light: mesh!(ctx, "./assets/goal_node_light.glb"),
+            goal_light_mat: Gp::new(PBRMaterial {
+                shader: laser_shader.clone(),
+                ..PBRMaterial::default(ctx)
+            }),
+
             wall_tl,
             wall_t,
             wall_tr,
@@ -318,7 +338,7 @@ impl Assets {
 
             laser: mesh!(ctx, "./assets/laser.glb"),
             laser_mat: Gp::new(PBRMaterial {
-                shader: Gp::new(PBRShader::new(ctx, "laser.wgsl", include_str!("./shaders/laser.wgsl"))),
+                shader: laser_shader.clone(),
                 ..PBRMaterial::default(ctx)
             }),
 
@@ -337,6 +357,13 @@ impl Assets {
         Gp::new(MeshInstance::new_modulate(ctx,
             self.laser.clone(),
             self.laser_mat.clone(),
+            transform, color.extend(1.0)))
+    }
+
+    fn goal_light(&self, ctx: &RenderCtx, transform: cgmath::Matrix4<f32>, color: Vector3<f32>) -> Gp<MeshInstance> {
+        Gp::new(MeshInstance::new_modulate(ctx,
+            self.goal_light.clone(),
+            self.goal_light_mat.clone(),
             transform, color.extend(1.0)))
     }
 }

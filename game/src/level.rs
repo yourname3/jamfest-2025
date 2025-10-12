@@ -21,6 +21,7 @@ use crate::{Assets, SelectorState};
 pub enum DeviceTy {
     Mix,
     Emitter(LaserValue),
+    Goal(LaserValue),
 }
 
 impl DeviceTy {
@@ -28,13 +29,15 @@ impl DeviceTy {
         match self {
             DeviceTy::Mix => &[(0, 0), (0, 1)],
             DeviceTy::Emitter(_) => &[(0, 0)],
+            DeviceTy::Goal(_) => &[(0, 0)],
         }
     }
 
     pub fn get_bounds(&self) -> (i32, i32) {
         match self {
             DeviceTy::Mix => (1, 2),
-            DeviceTy::Emitter(_) => (1, 1)
+            DeviceTy::Emitter(_) => (1, 1),
+            DeviceTy::Goal(_) => (1, 1)
         }
     }
 
@@ -43,6 +46,7 @@ impl DeviceTy {
             DeviceTy::Mix => SelectorState::Vert2,
             // Not selectable
             DeviceTy::Emitter(_) => SelectorState::None,
+            DeviceTy::Goal(_) => SelectorState::None,
         }
     }
 
@@ -50,6 +54,7 @@ impl DeviceTy {
         let (mesh, mat) = match self {
             DeviceTy::Mix => (&assets.node_mix, &assets.node_mix_mat),
             DeviceTy::Emitter(_) => (&assets.emitter, &assets.emitter_mat),
+            DeviceTy::Goal(_) => (&assets.goal, &assets.goal_mat),
         };
         Gp::new(MeshInstance::new(
             engine.render_ctx(),
@@ -74,6 +79,9 @@ impl DeviceTy {
             DeviceTy::Emitter(value) => {
                 let laser = Laser { x, y, length: 0, value: value.clone() };
                 lasers.push(laser);
+            },
+            DeviceTy::Goal(value) => {
+                // TODO: Count goal fulfills here?
             }
         }
     }
@@ -248,6 +256,7 @@ impl Level {
         const WALL_TL_I: u32 = 82;
 
         const EMITTER: u32 = 3;
+        const GOAL   : u32 = 4;
 
         let map = load_level(map_path);
 
@@ -329,18 +338,22 @@ impl Level {
             let id = obj.get_tile().unwrap().id();
             log::info!("object @ {}, {} => {}", obj.x, obj.y, id);
             match id {
-                EMITTER => {
+                EMITTER | GOAL => {
                     let color = match obj.properties.get("color") {
                         Some(PropertyValue::ColorValue(color)) => {
                             vec3(color.red as f32 / 255.0, color.green as f32 / 255.0, color.blue as f32 / 255.0)
                         },
                         _ => vec3(1.0, 1.0, 1.0)
                     };
+
+                    let ty = if id == EMITTER { DeviceTy::Emitter(LaserValue::color(color)) }
+                        else { DeviceTy::Goal(LaserValue::color(color)) };
+
                     // Use force place because level objects can be overlapping
                     // the void / the partial-void.
                     // Note: Tiled's Y positions are very weird. Subtract 32
                     level.force_place(f32::floor(obj.x / 32.0) as i32,f32::floor( (obj.y - 32.0) / 32.0) as i32,
-                        DeviceTy::Emitter(LaserValue::color(color)));
+                        ty);
                 },
                 _ => {}
             }
@@ -506,8 +519,15 @@ impl Level {
             //log::info!("cell @ {},{} => {:?}", x, y, std::mem::discriminant(cell));
             match cell {
                 GridCell::DeviceRoot(device) => {
-                    engine.main_world.push_mesh(device.ty.mk_mesh_instance(engine, assets, 
-                        Matrix4::from_translation(vec3(x as f32, 0.0, y as f32))))
+                    let mat = Matrix4::from_translation(vec3(x as f32, 0.0, y as f32));
+
+                    if let DeviceTy::Goal(value) = &device.ty {
+                        //log::info!("pushing orb with color {:?}", value.color);
+                        engine.main_world.push_mesh(assets.goal_light(engine.render_ctx(), mat.clone(),
+                            value.color))
+                    }
+
+                    engine.main_world.push_mesh(device.ty.mk_mesh_instance(engine, assets, mat))
                 },
                 _ => {}
             }
