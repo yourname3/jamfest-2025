@@ -391,9 +391,12 @@ impl ponygame::Gameplay for GameplayLogic {
         let mut level = Level::new_from_map("./levels/test.tmx", engine, &assets);
        // for i in 0..5 {
         level.try_place(2, 2, DeviceTy::Mix);
+        
         //}//
 
         let selector = Selector::new(ctx, &assets);
+
+        level.setup_camera(engine);
 
         GameplayLogic {
             assets,
@@ -410,6 +413,7 @@ impl ponygame::Gameplay for GameplayLogic {
         self.tweak_scene(engine);
 
         self.level.build_lasers();
+        self.level.setup_camera(engine);
 
         self.selector.update(engine, &mut self.level);
 

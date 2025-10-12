@@ -1,4 +1,5 @@
 use std::cell::Cell;
+use std::cmp::max;
 use std::f32::consts::PI;
 
 use grid::Grid;
@@ -161,6 +162,9 @@ pub struct Level {
     pub floor_grid: Grid<GridCell>,
     pub lasers: Vec<Laser>,
     pub h_laser_ends: Grid<Option<LaserValue>>,
+    // I guess for now, we won't worry about making the bounds consistently
+    // tiles or not.
+    pub bounds: (u32, u32, u32, u32),
 }
 
 impl Level {
@@ -254,9 +258,34 @@ impl Level {
             floor_grid: Grid::new_with_order(map.height as usize, map.width as usize, grid::Order::ColumnMajor),
             lasers: Vec::new(),
             h_laser_ends: Grid::new_with_order(map.height as usize, map.width as usize, grid::Order::ColumnMajor),
+            bounds: (0, 0, 0, 0),
         };
 
         let floors = map.get_layer(0).unwrap().as_tile_layer().unwrap();
+
+        let mut actual_bounds = None;
+
+        let width = floors.width().unwrap();
+        let height = floors.height().unwrap();
+        for x in 0..width {
+            for y in 0..height {
+                if let Some(tile) = floors.get_tile(x as i32, y as i32) {
+                    let Some((mut min_x, mut min_y, mut max_x, mut max_y)) = actual_bounds else { actual_bounds = Some((x, y, x, y)); continue; };
+
+                    if x < min_x { min_x = x; }
+                    if x > max_x { max_x = x; }
+
+                    if y < min_y { min_y = y; }
+                    if y > max_y { max_y = y; }
+
+                    actual_bounds = Some((min_x, min_y, max_x, max_y));
+                }
+            }
+        }
+
+        // This will crash if the level doesn't have a single tile, which is fine.
+        level.bounds = actual_bounds.unwrap();
+ 
         let width = floors.width().unwrap();
         let height = floors.height().unwrap();
         for x in 0..width {
@@ -320,6 +349,23 @@ impl Level {
         //level.build_floor_meshes(engine, assets);
 
         level
+    }
+
+    pub fn setup_camera(&self, engine: &mut PonyGame) {
+        let x_pos = (self.bounds.0 + self.bounds.2 + 1) as f32 / 2.0;
+        let y_pos = (self.bounds.1 + self.bounds.3 + 1) as f32 / 2.0;
+
+        let viewport = engine.get_viewport();
+        // Zoom is based on height, so base the desired value from horizontal on
+        // the height/width conversion factor.
+        let desired_zoom_h = ((self.bounds.2 - self.bounds.0) + 2) as f32 * viewport.height as f32 / viewport.width as f32;
+        let desired_zoom_w = ((self.bounds.3 - self.bounds.1) as f32 + 2.0 * 0.66);
+
+        engine.main_camera.position.set(point3(x_pos, 15.0, y_pos + 3.0));
+        engine.main_camera.target.set(point3(x_pos, 0.0, y_pos + 0.0));
+        engine.main_camera.projection.set(CameraProjection::Orthographic {
+            zoom: if desired_zoom_h > desired_zoom_w { desired_zoom_h } else { desired_zoom_w },
+        });
     }
 
     pub fn is_in_bounds_and_empty(&self, x: i32, y: i32) -> bool {
