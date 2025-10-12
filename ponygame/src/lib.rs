@@ -37,6 +37,7 @@ pub trait Gameplay {
     const GAME_TITLE: &'static str;
     fn new(engine: &mut PonyGame) -> Self;
     fn tick(&mut self, engine: &mut PonyGame);
+    fn ui(&mut self, ctx: &egui::Context);
 }
 
 struct PonyGameApp<G: Gameplay> {
@@ -119,7 +120,7 @@ impl<G: Gameplay> ApplicationHandler<PonyGameAppEvent> for PonyGameApp<G> {
             _ => {}
         }
 
-        let should_exit = engine.video.handle_win_event(window_id, event, &mut engine.egui);
+        let should_exit = engine.video.handle_win_event::<G>(gameplay, window_id, event, &mut engine.egui);
         if should_exit {
             event_loop.exit();
         }

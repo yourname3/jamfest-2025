@@ -1,7 +1,6 @@
 use std::f32::consts::PI;
 
 mod level;
-mod ui;
 
 use grid::Grid;
 use inline_tweak::tweak;
@@ -427,6 +426,17 @@ impl ponygame::Gameplay for GameplayLogic {
         //engine.main_camera.position.set(point3(0.0, 15.0, 3.0) + offset);
         //engine.main_camera.target.set(point3(0.0, 0.0, 0.0) + offset);
         //game.main_camera.position.set(point3(15.0 * f32::cos(self.theta), 15.0 * f32::sin(self.theta), 0.0));
+    }
+
+    fn ui(&mut self, ctx: &egui::Context) {
+        egui::Area::new(egui::Id::new("test"))
+            .fixed_pos((20.0, 20.0))
+            .show(ctx, |ui| {
+                ui.set_max_width(300.0);
+                ui.heading("Test UI");
+
+                ui.button("Press This Button!");
+            });
     }
 }
 

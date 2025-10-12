@@ -14,7 +14,7 @@ use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 use wgpu::util::DeviceExt;
 use winit::{dpi::{PhysicalSize, Size}, event::{MouseButton, WindowEvent}, event_loop::{ActiveEventLoop, EventLoopProxy}, window::{WindowAttributes, WindowId}};
 
-use crate::{gc::{Gp, GpMaybe}, ui::Egui, video::{camera::Camera, hdr_tonemap::HdrTonemapPipeline, sky_pipeline::SkyPipeline, texture::{DepthTexture, Texture}, world::{Viewport, World}}, PonyGame, PonyGameAppEvent};
+use crate::{gc::{Gp, GpMaybe}, ui::Egui, video::{camera::Camera, hdr_tonemap::HdrTonemapPipeline, sky_pipeline::SkyPipeline, texture::{DepthTexture, Texture}, world::{Viewport, World}}, Gameplay, PonyGame, PonyGameAppEvent};
 
 // Bundles together all the global state that a given part of the renderer might
 // need, i.e. the device, queue, etc.
@@ -835,7 +835,7 @@ impl Video {
     }
 
     /// For now, returns whether we should now close the application.
-    pub fn handle_win_event(&mut self, window_id: WindowId, win_event: WindowEvent, egui: &mut Egui) -> bool {
+    pub fn handle_win_event<G: Gameplay>(&mut self, gameplay: &mut G, window_id: WindowId, win_event: WindowEvent, egui: &mut Egui) -> bool {
         let Some(window) = self.id_map.get_mut(&window_id) else { return false; };
 
         // TODO: Probably each Window should get its own EGUI
@@ -848,17 +848,7 @@ impl Video {
                 //  TODO: How do we handle this per-window?
                 let raw_input = egui.egui_state.take_egui_input(&window.sdl);
                 let full_output = egui.egui_ctx.run(raw_input, |ctx| {
-                    egui::Area::new(egui::Id::new("test"))
-                        .fixed_pos((20.0, 20.0))
-                        .show(ctx, |ui| {
-                            ui.set_max_width(300.0);
-                            ui.heading("Test UI");
-
-                            ui.button("Press This Button!");
-                        });
-                    // egui::CentralPanel::default().show(ctx, |ui| {
-                    //     ui.heading("Test UI");
-                    // });
+                    gameplay.ui(ctx);
                 });
                 // TODO: Call this somehow...
                 // egui.egui_state.handle_platform_output(&window.sdl, full_output.platform_output);
