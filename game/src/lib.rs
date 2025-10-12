@@ -309,6 +309,7 @@ impl Assets {
             goal_mat: Gp::new(PBRMaterial {
                 albedo_texture: metal_031_a.clone(),
                 metallic_roughness_texture: metal_031_m.clone(),
+                albedo_decal_texture: texture_srgb!(ctx, "./assets/goal_label.png"),
                 ..PBRMaterial::default(ctx)
             }),
 
