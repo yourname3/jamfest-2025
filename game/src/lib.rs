@@ -5,7 +5,7 @@ use std::hash::Hash;
 
 mod level;
 
-use egui::{Align2, Color32};
+use egui::{Align2, Color32, Layout};
 use grid::Grid;
 use inline_tweak::tweak;
 use ponygame::cgmath::num_traits::pow;
@@ -733,7 +733,7 @@ impl GameplayLogic {
 
 
 impl ponygame::Gameplay for GameplayLogic {
-    const GAME_TITLE: &'static str = "JamFest";
+    const GAME_TITLE: &'static str = "ben's beams";
     const DEFAULT_TONEMAP: ponygame::video::hdr_tonemap::Tonemap = Tonemap::None;
 
     fn new(engine: &mut PonyGame) -> Self {
@@ -816,11 +816,13 @@ impl ponygame::Gameplay for GameplayLogic {
     
 
     fn ui(&mut self, engine: &mut PonyGame, ctx: &egui::Context) {
-        ctx.set_zoom_factor(4.0);
+        // We have to set this on the engine's Window object
+        // ctx.set_zoom_factor(4.0);
+
+        let mut desired_scale = 3.0;
+
         match self.state {
             GameplayState::Level => {
-               
-
                 if self.has_won {
                     egui::Area::new(egui::Id::new("win_menu"))
                         .anchor(Align2::CENTER_CENTER, (0.0, 0.0))
@@ -830,15 +832,17 @@ impl ponygame::Gameplay for GameplayLogic {
                                 .corner_radius(5.0)
                                 .inner_margin(5.0)
                                 .show(ui, |ui| {
-                                    ui.heading("You Win!");
-                                    if ui.button("Next Level").clicked() {
-                                        self.open_level(engine, self.cur_level_idx + 1);
-                                        self.click(engine);
-                                    }
-                                    if ui.button("Quit").clicked() {
-                                        self.state = GameplayState::LevelSelect;
-                                        self.click(engine);
-                                    }
+                                    ui.vertical_centered(|ui| {
+                                        ui.heading("you win!");
+                                        if ui.button("next level").clicked() {
+                                            self.open_level(engine, self.cur_level_idx + 1);
+                                            self.click(engine);
+                                        }
+                                        if ui.button("quit").clicked() {
+                                            self.state = GameplayState::LevelSelect;
+                                            self.click(engine);
+                                        }
+                                    });
                                 });
                             
                             //.heading("Test UI");
@@ -850,8 +854,8 @@ impl ponygame::Gameplay for GameplayLogic {
                      egui::Area::new(egui::Id::new("lvl_menu"))
                     .fixed_pos((4.0, 4.0))
                     .show(ctx, |ui| {
-                        ui.heading(format!("Level {}", (self.cur_level_idx + 1)));
-                        if ui.button("Quit").clicked() {
+                        ui.heading(format!("level {}", (self.cur_level_idx + 1)));
+                        if ui.button("quit").clicked() {
                             self.state = GameplayState::LevelSelect;
                             self.click(engine);
                         }
@@ -860,13 +864,13 @@ impl ponygame::Gameplay for GameplayLogic {
             }
 
             GameplayState::LevelSelect => {
-                egui::CentralPanel::default()
-                    .show(ctx, |ui| {
-
+                egui::CentralPanel::default().show(ctx, |ui| {
+                    ui.vertical_centered(|ui| {
+                        ui.heading("choose a level...");
                         let mut nr = 1;
                         for level in LEVELS {
                             log::info!("level select: {} {}", nr, level);
-                            let label = format!("Level {}", nr);
+                            let label = format!("level {}", nr);
                             if ui.button(label).clicked() {
                                 self.open_level(engine, nr - 1);
                                 self.click(engine);
@@ -875,19 +879,23 @@ impl ponygame::Gameplay for GameplayLogic {
                             nr += 1;
                         }
                     });
+                });
             }
 
             GameplayState::MainMenu => {
-                egui::CentralPanel::default()
-                    .show(ctx, |ui| {
-                        ui.heading("My Game");
-                        if ui.button("Play!").clicked() {
+                egui::CentralPanel::default().show(ctx, |ui| {
+                     ui.vertical_centered(|ui| {
+                        ui.heading("ben's beams");
+                        if ui.button("play!").clicked() {
                             self.state = GameplayState::LevelSelect;
                         }
                     });
+                });
             }
         }
         
+        engine.get_main_window_mut().egui_scale_factor = desired_scale;
+        ctx.set_zoom_factor(desired_scale as f32);
     }
 }
 

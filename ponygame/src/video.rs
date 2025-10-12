@@ -703,11 +703,13 @@ pub struct Window {
     pub cursor_position: Vector2<f32>,
 
     pub left_mouse_down: bool,
+
+    pub egui_scale_factor: f64,
 }
 
 impl Window {
     pub fn egui_pixels_per_point(&self) -> f64 {
-        self.sdl.scale_factor() * 4.0
+        self.sdl.scale_factor() * self.egui_scale_factor
     }
 }
 
@@ -738,6 +740,7 @@ impl Video {
             renderer: per,
             cursor_position: Vector2::zero(),
             left_mouse_down: false,
+            egui_scale_factor: 2.0,
         };
         id_map.insert(id, window);
 
@@ -856,7 +859,11 @@ impl Video {
                 let raw_input = engine.egui.egui_state.take_egui_input(&window.sdl);
                 // Clone the context for borrow checker :)
                 let context = engine.egui.egui_ctx.clone();
+                // Set this here, because we need to keep it consistent between
+                // what we actualyl tell EGUI and what the context gets.
+                let ctx_pixels_per_point = window.egui_scale_factor as f32;
                 let full_output = context.run(raw_input, |ctx| {
+                    ctx.set_zoom_factor(ctx_pixels_per_point);
                     gameplay.ui(engine, ctx);
                 });
                 // TODO: Call this somehow...

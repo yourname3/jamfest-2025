@@ -57,6 +57,9 @@ impl PonyGame {
     pub fn get_main_window(&self) -> &Window {
         self.video.id_map.iter().next().unwrap().1
     }
+    pub fn get_main_window_mut(&mut self) -> &mut Window {
+        self.video.id_map.iter_mut().next().unwrap().1
+    }
 
     pub fn get_viewport(&self) -> &Viewport {
         &self.video.id_map.iter().next().unwrap().1.renderer.viewport
@@ -123,6 +126,13 @@ impl<G: Gameplay> ApplicationHandler<PonyGameAppEvent> for PonyGameApp<G> {
 
         let should_exit = Video::handle_win_event::<G>(engine, gameplay, window_id, event);
         if should_exit {
+            #[cfg(not(target_arch = "wasm32"))]
+            {
+                // Right now, we have some awkwardness in our get_viewport()
+                // and such unwrapping, that causes panics. So just do this
+                // instead.
+                std::process::exit(0);
+            }
             event_loop.exit();
         }
 
