@@ -848,9 +848,17 @@ impl Video {
                 //  TODO: How do we handle this per-window?
                 let raw_input = egui.egui_state.take_egui_input(&window.sdl);
                 let full_output = egui.egui_ctx.run(raw_input, |ctx| {
-                    egui::CentralPanel::default().show(ctx, |ui| {
-                        ui.heading("Test UI");
-                    });
+                    egui::Area::new(egui::Id::new("test"))
+                        .fixed_pos((20.0, 20.0))
+                        .show(ctx, |ui| {
+                            ui.set_max_width(300.0);
+                            ui.heading("Test UI");
+
+                            ui.button("Press This Button!");
+                        });
+                    // egui::CentralPanel::default().show(ctx, |ui| {
+                    //     ui.heading("Test UI");
+                    // });
                 });
                 // TODO: Call this somehow...
                 // egui.egui_state.handle_platform_output(&window.sdl, full_output.platform_output);
