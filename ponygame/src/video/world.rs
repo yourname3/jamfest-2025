@@ -2,7 +2,7 @@ use std::cell::{Cell, RefCell};
 
 use bytemuck::Zeroable;
 
-use crate::{gc::Gp, video::{camera::Camera, hdr_tonemap::HdrTonemapPipeline, mesh_render_pipeline::MeshInstance, texture::{DepthTexture, Texture}, RenderCtx, Renderer, UniformBuffer}};
+use crate::{gc::Gp, video::{camera::Camera, hdr_tonemap::{HdrTonemapPipeline, Tonemap}, mesh_render_pipeline::MeshInstance, texture::{DepthTexture, Texture}, RenderCtx, Renderer, UniformBuffer}};
 
 pub struct Light3D {
     pub direction: Cell<cgmath::Vector3<f32>>,
@@ -182,7 +182,7 @@ impl Viewport {
         })
     }
 
-    pub fn new(ctx: &RenderCtx, world: Gp<World>, camera: Gp<Camera>, dimensions: (u32, u32), config: &wgpu::SurfaceConfiguration) -> Self {
+    pub fn new(ctx: &RenderCtx, world: Gp<World>, camera: Gp<Camera>, dimensions: (u32, u32), config: &wgpu::SurfaceConfiguration, default_tonemap: Tonemap) -> Self {
         let viewport_init = ViewportUniform::identity();
 
         let last_envmap = world.envmap.clone();
@@ -201,7 +201,7 @@ impl Viewport {
         let bind_group = Self::build_bind_group(ctx, &viewport_buffer, &lights_buffer, &last_envmap);
 
         let depth_texture = DepthTexture::new(ctx, dimensions);
-        let hdr = HdrTonemapPipeline::new(dimensions.0, dimensions.1, ctx, config);
+        let hdr = HdrTonemapPipeline::new(dimensions.0, dimensions.1, ctx, config, default_tonemap);
 
         Viewport {
             world,

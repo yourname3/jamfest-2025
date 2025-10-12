@@ -4,7 +4,9 @@ mod level;
 
 use grid::Grid;
 use inline_tweak::tweak;
+use ponygame::cgmath::num_traits::pow;
 use ponygame::video::asset_import::import_mesh_set_as_gc;
+use ponygame::video::hdr_tonemap::Tonemap;
 use ponygame::{game, gc};
 // /
 use ponygame::cgmath::{point3, vec3, vec4, Matrix4, SquareMatrix, Vector3, Zero};
@@ -395,7 +397,13 @@ impl Assets {
     //         transform))
     // }
 
+    fn the_pow(v: Vector3<f32>, pow: f32) -> Vector3<f32> {
+        vec3(f32::powf(v.x, pow), f32::powf(v.y, pow), f32::powf(v.z, pow))
+    }
+
     fn laser(&self, ctx: &RenderCtx, transform: cgmath::Matrix4<f32>, color: Vector3<f32>) -> Gp<MeshInstance> {
+        let color = Self::the_pow(color, 2.2);
+
         Gp::new(MeshInstance::new_modulate(ctx,
             self.laser.clone(),
             self.laser_mat.clone(),
@@ -403,6 +411,8 @@ impl Assets {
     }
 
     fn goal_light(&self, ctx: &RenderCtx, transform: cgmath::Matrix4<f32>, color: Vector3<f32>) -> Gp<MeshInstance> {
+        let color = Self::the_pow(color, 2.2);
+
         Gp::new(MeshInstance::new_modulate(ctx,
             self.goal_light.clone(),
             self.goal_light_mat.clone(),
@@ -437,6 +447,7 @@ impl GameplayLogic {
 
 impl ponygame::Gameplay for GameplayLogic {
     const GAME_TITLE: &'static str = "JamFest";
+    const DEFAULT_TONEMAP: ponygame::video::hdr_tonemap::Tonemap = Tonemap::None;
 
     fn new(engine: &mut PonyGame) -> Self {
        let assets = Assets::new(engine);

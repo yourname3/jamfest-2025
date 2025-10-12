@@ -14,7 +14,7 @@ use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 use wgpu::util::DeviceExt;
 use winit::{dpi::{PhysicalSize, Size}, event::{MouseButton, WindowEvent}, event_loop::{ActiveEventLoop, EventLoopProxy}, window::{WindowAttributes, WindowId}};
 
-use crate::{gc::{Gp, GpMaybe}, ui::Egui, video::{camera::Camera, hdr_tonemap::HdrTonemapPipeline, sky_pipeline::SkyPipeline, texture::{DepthTexture, Texture}, world::{Viewport, World}}, Gameplay, PonyGame, PonyGameAppEvent};
+use crate::{gc::{Gp, GpMaybe}, ui::Egui, video::{camera::Camera, hdr_tonemap::{HdrTonemapPipeline, Tonemap}, sky_pipeline::SkyPipeline, texture::{DepthTexture, Texture}, world::{Viewport, World}}, Gameplay, PonyGame, PonyGameAppEvent};
 
 // Bundles together all the global state that a given part of the renderer might
 // need, i.e. the device, queue, etc.
@@ -347,7 +347,8 @@ impl PerWindowRenderer {
     pub fn new_from_surface_and_ctx(
         window: &winit::window::Window,
         surface: wgpu::Surface<'static>,
-        ctx: &RenderCtx
+        ctx: &RenderCtx,
+        default_tonemap: Tonemap,
     ) -> Self {
         // TODO: DPI stuff...
         let PhysicalSize { width: win_width, height: win_height } = window.inner_size();
@@ -374,7 +375,7 @@ impl PerWindowRenderer {
         let camera = Camera::demo();
 
         let viewport = Viewport::new(ctx, Gp::new(world), Gp::new(camera),
-        (win_width, win_height), &config);
+        (win_width, win_height), &config, default_tonemap);
 
         Self {
             surface,
@@ -385,7 +386,7 @@ impl PerWindowRenderer {
         }
     }
 
-    pub fn new(window: &winit::window::Window, ctx: &RenderCtx) -> Self {
+    pub fn new(window: &winit::window::Window, ctx: &RenderCtx, default_tonemap: Tonemap) -> Self {
          let surface = unsafe {
             let raw_display_handle = window.display_handle().unwrap().as_raw();
             let raw_window_handle = window.window_handle().unwrap().as_raw();
@@ -393,7 +394,7 @@ impl PerWindowRenderer {
                 .unwrap()
         };
 
-        Self::new_from_surface_and_ctx(window, surface, ctx)
+        Self::new_from_surface_and_ctx(window, surface, ctx, default_tonemap)
     }
 
     fn resize(&mut self, renderer: &Renderer, width: u32, height: u32) {
@@ -670,11 +671,11 @@ impl Layouts {
 
 
 impl Renderer {
-    async fn new(initial_window: &winit::window::Window) -> (Renderer, PerWindowRenderer) {
+    async fn new<G: Gameplay>(initial_window: &winit::window::Window) -> (Renderer, PerWindowRenderer) {
         let (ctx, surface) = RenderCtx::new(initial_window).await;
 
         let initial_per_window = PerWindowRenderer::new_from_surface_and_ctx(initial_window,
-            surface, &ctx);
+            surface, &ctx, G::DEFAULT_TONEMAP);
 
         // For our pipelines, we will use the config from the initial_per_window.
         //
@@ -774,7 +775,7 @@ impl Video {
         }
     }
 
-    pub fn new(
+    pub fn new<G: Gameplay>(
         event_loop: &ActiveEventLoop,
         proxy: EventLoopProxy<PonyGameAppEvent>,
         // TODO: Bundle properties together better?
@@ -813,7 +814,7 @@ impl Video {
         // will panic.
         #[cfg(not(target_arch = "wasm32"))]
         {
-            let (renderer, mut per) = pollster::block_on(Renderer::new(&window));
+            let (renderer, mut per) = pollster::block_on(Renderer::new::<G>(&window));
             Self::finish_initializing(renderer, id_map, per, window, proxy);
         }
 

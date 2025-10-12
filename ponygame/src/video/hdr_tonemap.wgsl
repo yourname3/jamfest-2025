@@ -70,10 +70,17 @@ fn tonemap_aces_to_unorm(vs: VertexOutput) -> @location(0) vec4<f32> {
 }
 
 @fragment
-fn tonemap_none(vs: VertexOutput) -> @location(0) vec4f {
+fn tonemap_none_to_srgb(vs: VertexOutput) -> @location(0) vec4f {
     let hdr = textureSample(hdr_image, hdr_sampler, vs.uv);
     let sdr = clamp(hdr.rgb, vec3f(0.0), vec3f(1.0));
     return vec4(sdr, hdr.a);
+}
+
+@fragment
+fn tonemap_none_to_unorm(vs: VertexOutput) -> @location(0) vec4f {
+    let hdr = textureSample(hdr_image, hdr_sampler, vs.uv);
+    let sdr = clamp(hdr.rgb, vec3f(0.0), vec3f(1.0));
+    return convert_gamma(vec4(sdr, hdr.a));
 }
 
 @fragment

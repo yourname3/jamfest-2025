@@ -4,7 +4,7 @@ use wasm_bindgen::prelude::*;
 
 use winit::{application::ApplicationHandler, event::WindowEvent, event_loop::{ActiveEventLoop, ControlFlow, EventLoop, EventLoopProxy}};
 
-use crate::{gc::Gp, video::{camera::Camera, world::{Viewport, World}, RenderCtx, Video, Window}};
+use crate::{gc::Gp, video::{camera::Camera, hdr_tonemap::Tonemap, world::{Viewport, World}, RenderCtx, Video, Window}};
 
 pub mod audio;
 pub mod error;
@@ -35,6 +35,7 @@ pub struct PonyGame {
 
 pub trait Gameplay {
     const GAME_TITLE: &'static str;
+    const DEFAULT_TONEMAP: Tonemap;
     fn new(engine: &mut PonyGame) -> Self;
     fn tick(&mut self, engine: &mut PonyGame);
     fn ui(&mut self, ctx: &egui::Context);
@@ -100,7 +101,7 @@ impl PonyGame {
 impl<G: Gameplay> ApplicationHandler<PonyGameAppEvent> for PonyGameApp<G> {
     fn resumed(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
         if let Some(init_proxy) = self.init_proxy.take() {
-            Video::new(event_loop, init_proxy, G::GAME_TITLE)
+            Video::new::<G>(event_loop, init_proxy, G::GAME_TITLE)
         }
     }
 

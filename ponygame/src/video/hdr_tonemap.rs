@@ -8,6 +8,11 @@ pub struct HdrTonemapPipeline {
     pub bind_group: wgpu::BindGroup,
 }
 
+pub enum Tonemap {
+    None,
+    Aces,
+}
+
 impl HdrTonemapPipeline {
     pub const COLOR_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba16Float;
 
@@ -53,7 +58,7 @@ impl HdrTonemapPipeline {
         (texture, view, bind_group)
     }
 
-    pub fn new(width: u32, height: u32, ctx: &RenderCtx, config: &wgpu::SurfaceConfiguration) -> Self {
+    pub fn new(width: u32, height: u32, ctx: &RenderCtx, config: &wgpu::SurfaceConfiguration, tonemap: Tonemap) -> Self {
         let (texture, view, bind_group) =
             Self::create_texture(width, height, ctx);
 
@@ -71,13 +76,21 @@ impl HdrTonemapPipeline {
         // based on the config format.
         
         let tonemapper = if config.format.is_srgb() {
-            "tonemap_aces_to_srgb"
+            match tonemap {
+                Tonemap::None => "tonemap_none_to_srgb",
+                Tonemap::Aces => "tonemap_aces_to_srgb",
+            }
         }
         else {
             // Unorm is maybe a bad name here. It really means, we will perform
             // a gamma-correcting curve.
-            "tonemap_aces_to_unorm"
+             match tonemap {
+                Tonemap::None => "tonemap_none_to_unorm",
+                Tonemap::Aces => "tonemap_aces_to_unorm",
+            }
         };
+
+        log::info!("using tonemap fn {}", tonemapper);
 
         let pipeline = ctx.device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: Some("HDR tonemap pipeline"),
