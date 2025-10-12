@@ -272,6 +272,12 @@ impl Selector {
                     self.start_x = self.x;
                     self.start_y = self.y;
 
+                    // Update the mesh to not be red
+                    if let Some(mesh) = self.get_current_mesh() {
+                        mesh.modulate.set(vec4(1.0, 1.0, 1.0, 1.0));
+                        mesh.update(engine.render_ctx());
+                    }
+
                     if engine.get_main_window().left_mouse_down {
                         self.is_moving = true;
                     }
