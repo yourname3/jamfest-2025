@@ -630,7 +630,7 @@ impl Level {
 
                     if let DeviceTy::Goal(value) = &device.ty {
                         //log::info!("pushing orb with color {:?}", value.color);
-                        engine.main_world.push_mesh(assets.goal_light(engine.render_ctx(), mat.clone(),
+                        engine.main_world.push_mesh(assets.goal_light(engine, mat.clone(),
                             value.color))
                     }
 
@@ -641,7 +641,7 @@ impl Level {
         }
 
         for laser in &self.lasers {
-            engine.main_world.push_mesh(assets.laser(engine.render_ctx(),
+            engine.main_world.push_mesh(assets.laser(engine,
                 // Add a horizontal offset of 0.5 so that the laser is good. 
                 Matrix4::from_translation(vec3(laser.x as f32 + 0.5, 0.0, laser.y as f32))
                 * Matrix4::from_nonuniform_scale(laser.length as f32, 1.0, 1.0),

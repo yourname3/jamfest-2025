@@ -75,6 +75,14 @@ impl InstancePool {
         mesh
     }
 
+    pub fn get_at2(&self, engine: &PonyGame, mesh: &Gp<Mesh>, mat: &Gp<PBRMaterial>, transform: Matrix4<f32>, modulate: cgmath::Vector4<f32>) -> Gp<MeshInstance> {
+        let mesh = self.get(engine, mesh, mat);
+        mesh.transform.set(transform);
+        mesh.modulate.set(modulate);
+        mesh.update(engine.render_ctx());
+        mesh
+    }
+
     pub fn recycle(&self) {
         let mut total: usize = 0;
 
@@ -642,22 +650,22 @@ impl Assets {
         vec3(f32::powf(v.x, pow), f32::powf(v.y, pow), f32::powf(v.z, pow))
     }
 
-    fn laser(&self, ctx: &RenderCtx, transform: cgmath::Matrix4<f32>, color: Vector3<f32>) -> Gp<MeshInstance> {
+    fn laser(&self, engine: &PonyGame, transform: cgmath::Matrix4<f32>, color: Vector3<f32>) -> Gp<MeshInstance> {
         let color = Self::the_pow(color, 2.2);
 
-        Gp::new(MeshInstance::new_modulate(ctx,
-            self.laser.clone(),
-            self.laser_mat.clone(),
-            transform, color.extend(1.0)))
+        self.pool.get_at2(engine,
+            &self.laser,
+            &self.laser_mat,
+            transform, color.extend(1.0))
     }
 
-    fn goal_light(&self, ctx: &RenderCtx, transform: cgmath::Matrix4<f32>, color: Vector3<f32>) -> Gp<MeshInstance> {
+    fn goal_light(&self, engine: &PonyGame, transform: cgmath::Matrix4<f32>, color: Vector3<f32>) -> Gp<MeshInstance> {
         let color = Self::the_pow(color, 2.2);
 
-        Gp::new(MeshInstance::new_modulate(ctx,
-            self.goal_light.clone(),
-            self.goal_light_mat.clone(),
-            transform, color.extend(1.0)))
+        self.pool.get_at2(engine,
+            &self.goal_light,
+            &self.goal_light_mat,
+            transform, color.extend(1.0))
     }
 }
 
