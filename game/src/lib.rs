@@ -883,6 +883,7 @@ impl ponygame::Gameplay for GameplayLogic {
             }
 
             GameplayState::MainMenu => {
+                desired_scale = 5.0;
                 egui::CentralPanel::default().show(ctx, |ui| {
                      ui.vertical_centered(|ui| {
                         ui.heading("ben's beams");
