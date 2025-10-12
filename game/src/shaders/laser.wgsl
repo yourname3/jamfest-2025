@@ -14,7 +14,9 @@ fn pbr_fn(in: VertexOutput) -> PBROut {
     //let b = mix(laser_color, w, (clamp(t, 0.6, 1.0) - 0.5) * 2.0);
     let c = mix(a, laser_color, t);
 
-    out.emission = mix(laser_color * 4.0 + vec3(0.7), laser_color, t);
+    //let center_color = laser_color * 4.0 + vec3(0.7);
+    let center_color = vec3(1.0);
+    out.emission = mix(center_color, laser_color, t);
     out.albedo = vec3(0.0); //out.emission;
 
     // out.emission *= 0.5;
