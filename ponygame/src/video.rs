@@ -821,7 +821,7 @@ impl Video {
         #[cfg(target_arch = "wasm32")]
         {
             wasm_bindgen_futures::spawn_local(async move {
-                let (renderer, mut per) = Renderer::new(&window).await;
+                let (renderer, mut per) = Renderer::new::<G>(&window).await;
                 Self::finish_initializing(renderer, id_map, per, window, proxy);
             });
         }
