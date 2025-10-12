@@ -97,12 +97,12 @@ impl DeviceTy {
             DeviceTy::Swap => (&assets.node_swap, &assets.node_swap_mat),
             DeviceTy::Split => (&assets.node_split, &assets.node_split_mat),
         };
-        Gp::new(MeshInstance::new(
-            engine.render_ctx(),
-            mesh.clone(),
-            if locked { &mat.locked_mat } else { &mat.unlocked_mat }.clone(),
+
+        assets.pool.get_at(engine,
+            mesh,
+            if locked { &mat.locked_mat } else { &mat.unlocked_mat },
             transform
-        ))
+        )
     }
 
     // Returns whether this fulfilled a goal.
@@ -301,13 +301,13 @@ impl Level {
     //     level
     // }
 
-    pub fn spawn_static_tile(&mut self, engine: &PonyGame, mesh: &Gp<Mesh>, mat: &Gp<PBRMaterial>, x: i32, y: i32) {
-        let instance = Gp::new(MeshInstance::new(
-            engine.render_ctx(),
-            mesh.clone(),
-            mat.clone(),
+    pub fn spawn_static_tile(&mut self, engine: &PonyGame, assets: &Assets, mesh: &Gp<Mesh>, mat: &Gp<PBRMaterial>, x: i32, y: i32) {
+        let instance = assets.pool_static.get_at(
+            engine,
+            mesh,
+            mat,
             Matrix4::from_translation(vec3(x as f32, 0.0, y as f32))
-        ));
+        );
         //log::info!("instantiate floor mesh @ {},{}", x, y);
         self.floor_meshes.push(instance);
     }
@@ -407,7 +407,7 @@ impl Level {
                     };
 
                     if let Some((mesh, mat)) = mesh_mat {
-                        level.spawn_static_tile(engine, mesh, mat, x as i32, y as i32);
+                        level.spawn_static_tile(engine, assets, mesh, mat, x as i32, y as i32);
                     }
 
                     // Objects are placeable on the floor

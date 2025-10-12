@@ -1,4 +1,7 @@
+use std::cell::{Ref, RefCell};
+use std::collections::HashMap;
 use std::f32::consts::PI;
+use std::hash::Hash;
 
 mod level;
 
@@ -29,9 +32,70 @@ pub struct LockUnlockMat {
     pub unlocked_mat: Gp<PBRMaterial>,
 }
 
+struct InstancePool {
+    pools: RefCell<HashMap<(usize, usize), Vec<Gp<MeshInstance>>>>,
+    outstanding: RefCell<HashMap<(usize, usize), Vec<Gp<MeshInstance>>>>,
+}
+
+impl InstancePool {
+    pub fn new() -> Self {
+        Self {
+            pools: RefCell::new(HashMap::new()),
+            outstanding: RefCell::new(HashMap::new()),
+        }
+    }
+
+    pub fn get(&self, engine: &PonyGame, mesh: &Gp<Mesh>, mat: &Gp<PBRMaterial>) -> Gp<MeshInstance> {
+        let key = (
+            mesh.get_gc_value_ptr() as *const _ as usize,
+            mat.get_gc_value_ptr() as *const _ as usize);
+        let mut pools = self.pools.borrow_mut();
+        let the_pool = pools
+            .entry(key).or_insert(Vec::new());
+
+        if the_pool.is_empty() {
+            the_pool.push(Gp::new(MeshInstance::new(engine.render_ctx(),
+                mesh.clone(),
+                mat.clone(),
+                Matrix4::identity())));
+        }
+
+        let retval = the_pool.pop().unwrap();
+
+        let mut oustanding = self.outstanding.borrow_mut();
+        oustanding.entry(key).or_insert(Vec::new()).push(retval.clone());
+
+        retval
+    }
+
+    pub fn get_at(&self, engine: &PonyGame, mesh: &Gp<Mesh>, mat: &Gp<PBRMaterial>, transform: Matrix4<f32>) -> Gp<MeshInstance> {
+        let mesh = self.get(engine, mesh, mat);
+        mesh.transform.set(transform);
+        mesh.update(engine.render_ctx());
+        mesh
+    }
+
+    pub fn recycle(&self) {
+        let mut total: usize = 0;
+
+        let mut outstanding = self.outstanding.borrow_mut();
+        let mut pools = self.pools.borrow_mut();
+        for (k, v) in outstanding.iter_mut() {
+            total += v.len();
+            pools.entry(*k).or_insert(Vec::new()).append(v);
+            v.clear();
+        }
+
+        log::info!("recycled {} mesh instances", total);
+    }
+}
+
 struct Assets {
     horse_mesh: Gp<Mesh>,
     horse_material: Gp<PBRMaterial>,
+
+    pool: InstancePool,
+    pool_static: InstancePool,
 
     node_mix: Gp<Mesh>,
     node_mix_mat: LockUnlockMat,
@@ -467,6 +531,9 @@ impl Assets {
                 ..PBRMaterial::default(ctx)
             }),
 
+            pool: InstancePool::new(),
+            pool_static: InstancePool::new(),
+
             metal_sfx: [
                 sfx!("./assets/metal_1.wav"),
                 sfx!("./assets/metal_2.wav"),
@@ -638,6 +705,7 @@ impl GameplayLogic {
     }
 
     fn open_level(&mut self, engine: &mut PonyGame, idx: usize) {
+        self.assets.pool_static.recycle();
         if let Some(name) = LEVELS.get(idx) {
             self.level = Level::new_from_map(&format!("./levels/{}.tmx", name), engine, &self.assets); 
             self.state = GameplayState::Level;
@@ -724,6 +792,7 @@ impl ponygame::Gameplay for GameplayLogic {
         }
 
         engine.main_world.clear_meshes();
+        self.assets.pool.recycle();
         self.level.build_meshes(engine, &self.assets);
         self.selector.push_mesh(engine);
 
