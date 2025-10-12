@@ -623,11 +623,12 @@ macro_rules! tweak_vec3 {
     };
 }
 
-static LEVELS: [&str; 4] = [
+static LEVELS: [&str; 5] = [
     "intro",
     "intro_mix_simpler",
     "intro_mix",
     "locked_mixers",
+    "intro_mix_constrained",
 ];
 
 impl GameplayLogic {
@@ -695,7 +696,7 @@ impl ponygame::Gameplay for GameplayLogic {
             cur_level_idx: 0,
             selector,
             has_won: false,
-            state: GameplayState::LevelSelect,
+            state: GameplayState::MainMenu,
         }
     }
 
@@ -739,15 +740,7 @@ impl ponygame::Gameplay for GameplayLogic {
         ctx.set_zoom_factor(4.0);
         match self.state {
             GameplayState::Level => {
-                egui::Area::new(egui::Id::new("lvl_menu"))
-                    .fixed_pos((4.0, 4.0))
-                    .show(ctx, |ui| {
-                        ui.heading(format!("Level {}", (self.cur_level_idx + 1)));
-                        if ui.button("Quit").clicked() {
-                            self.state = GameplayState::LevelSelect;
-                            self.click(engine);
-                        }
-                    });
+               
 
                 if self.has_won {
                     egui::Area::new(egui::Id::new("win_menu"))
@@ -774,6 +767,17 @@ impl ponygame::Gameplay for GameplayLogic {
                             //ui.button("Press This Button!");
                         });
                 }
+                else {
+                     egui::Area::new(egui::Id::new("lvl_menu"))
+                    .fixed_pos((4.0, 4.0))
+                    .show(ctx, |ui| {
+                        ui.heading(format!("Level {}", (self.cur_level_idx + 1)));
+                        if ui.button("Quit").clicked() {
+                            self.state = GameplayState::LevelSelect;
+                            self.click(engine);
+                        }
+                    });
+                }
             }
 
             GameplayState::LevelSelect => {
@@ -794,7 +798,13 @@ impl ponygame::Gameplay for GameplayLogic {
             }
 
             GameplayState::MainMenu => {
-
+                egui::CentralPanel::default()
+                    .show(ctx, |ui| {
+                        ui.heading("My Game");
+                        if ui.button("Play!").clicked() {
+                            self.state = GameplayState::LevelSelect;
+                        }
+                    });
             }
         }
         
