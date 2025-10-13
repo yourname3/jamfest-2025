@@ -51,7 +51,7 @@ impl RenderCtx {
             // TODO: We aren't exactly respecting the WebGL limits, which can
             // be lower than the WebGPU limits.
             backends: if cfg!(target_arch = "wasm32") {
-                wgpu::Backends::PRIMARY
+                wgpu::Backends::all()
             }
             else {
                 wgpu::Backends::PRIMARY
