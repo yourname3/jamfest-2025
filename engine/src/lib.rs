@@ -195,14 +195,12 @@ pub fn run_game_impl<G: Gameplay>() {
 }
 
 #[cfg(target_arch = "wasm32")]
-pub fn run_game_on_web_impl<G: Gameplay>() -> Result<(), wasm_bindgen::JsValue> {
+pub fn run_game_on_web_impl<G: Gameplay>() {
     console_error_panic_hook::set_once();
 
     console_log::init().unwrap_throw();
 
     run_game_impl::<G>();
-
-    Ok(())
 }
 
 #[cfg(target_arch = "wasm32")]

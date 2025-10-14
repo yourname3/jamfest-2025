@@ -780,8 +780,6 @@ impl Video {
     pub fn wasm_remove_loading_screen() {
         #[cfg(target_arch = "wasm32")]
         {
-            use wasm_bindgen::JsCast;
-            use winit::platform::web::WindowAttributesExtWebSys;
             use wasm_bindgen::UnwrapThrowExt;
             
             const LOADING_ID: &str = "loading-tmp";
@@ -839,7 +837,7 @@ impl Video {
         #[cfg(target_arch = "wasm32")]
         {
             wasm_bindgen_futures::spawn_local(async move {
-                let (renderer, mut per) = Renderer::new::<G>(&window).await;
+                let (renderer, per) = Renderer::new::<G>(&window).await;
                 Self::finish_initializing(renderer, id_map, per, window, proxy);
             });
         }
