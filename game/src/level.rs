@@ -4,15 +4,15 @@ use std::f32::consts::PI;
 
 use grid::Grid;
 use inline_tweak::tweak;
-use ponygame::{game, gc};
+use engine::{game, gc};
 // /
-use ponygame::cgmath::{point3, vec3, AbsDiffEq, InnerSpace, Matrix4, SquareMatrix, Vector3};
-use ponygame::cgmath;
-use ponygame::log;
+use engine::cgmath::{point3, vec3, AbsDiffEq, InnerSpace, Matrix4, SquareMatrix, Vector3};
+use engine::cgmath;
+use engine::log;
 
-use ponygame::video::camera::CameraProjection;
-use ponygame::video::{PBRShader, RenderCtx};
-use ponygame::{audio::Sound, gc::{Gp, GpMaybe}, video::{asset_import::import_binary_data, mesh_render_pipeline::{Mesh, MeshInstance}, texture::Texture, PBRMaterial}, PonyGame};
+use engine::video::camera::CameraProjection;
+use engine::video::{PBRShader, RenderCtx};
+use engine::{audio::Sound, gc::{Gp, GpMaybe}, video::{asset_import::import_binary_data, mesh_render_pipeline::{Mesh, MeshInstance}, texture::Texture, PBRMaterial}, Engine};
 use tiled::{LayerTile, Loader, PropertyValue, ResourceReader};
 
 use crate::{Assets, SelectorState};
@@ -83,7 +83,7 @@ impl DeviceTy {
         }
     }
 
-    pub fn mk_mesh_instance(&self, engine: &PonyGame, assets: &Assets, locked: bool, transform: cgmath::Matrix4<f32>) -> Gp<MeshInstance> {
+    pub fn mk_mesh_instance(&self, engine: &Engine, assets: &Assets, locked: bool, transform: cgmath::Matrix4<f32>) -> Gp<MeshInstance> {
         let (mesh, mat) = match self {
             DeviceTy::Mix => (&assets.node_mix, &assets.node_mix_mat),
             DeviceTy::Emitter(_) => (&assets.emitter, &assets.emitter_mat),
@@ -282,7 +282,7 @@ pub struct Level {
 
 impl Level {
     // /// Shouldl be called once, to instantiate all the floor meshes.
-    // fn build_floor_meshes(&mut self, engine: &PonyGame, assets: &Assets) {
+    // fn build_floor_meshes(&mut self, engine: &Engine, assets: &Assets) {
     //     // For now, just put one every spot on the grid...?
     //     for ((y, x), cell) in self.grid.indexed_iter() {
     //         let (mesh, mat) = match cell {
@@ -317,7 +317,7 @@ impl Level {
         }
     }
 
-    // pub fn new(width: usize, height: usize, engine: &PonyGame, assets: &Assets) -> Level {
+    // pub fn new(width: usize, height: usize, engine: &Engine, assets: &Assets) -> Level {
     //     let mut level = Level {
     //         // Use column-major order so that when we iterate over 
     //         floor_meshes: Vec::new(),
@@ -332,7 +332,7 @@ impl Level {
     //     level
     // }
 
-    pub fn spawn_static_tile(&mut self, engine: &PonyGame, assets: &Assets, mesh: &Gp<Mesh>, mat: &Gp<PBRMaterial>, x: i32, y: i32) {
+    pub fn spawn_static_tile(&mut self, engine: &Engine, assets: &Assets, mesh: &Gp<Mesh>, mat: &Gp<PBRMaterial>, x: i32, y: i32) {
         let instance = assets.pool_static.get_at(
             engine,
             mesh,
@@ -343,7 +343,7 @@ impl Level {
         self.floor_meshes.push(instance);
     }
 
-    pub fn new_from_map(map_path: &str, engine: &PonyGame, assets: &Assets) -> Level {
+    pub fn new_from_map(map_path: &str, engine: &Engine, assets: &Assets) -> Level {
 
         const WALL_TL: u32 = 0;
         const WALL_T : u32 = 1;
@@ -502,7 +502,7 @@ impl Level {
         level
     }
 
-    pub fn setup_camera(&self, engine: &mut PonyGame) {
+    pub fn setup_camera(&self, engine: &mut Engine) {
         let x_pos = (self.bounds.0 + self.bounds.2 + 1) as f32 / 2.0;
         let y_pos = (self.bounds.1 + self.bounds.3 + 1) as f32 / 2.0;
 
@@ -652,7 +652,7 @@ impl Level {
         }
     }
 
-    pub fn build_meshes(&mut self, engine: &mut PonyGame, assets: &Assets) {
+    pub fn build_meshes(&mut self, engine: &mut Engine, assets: &Assets) {
         for ((y, x), cell) in self.grid.indexed_iter() {
             //log::info!("cell @ {},{} => {:?}", x, y, std::mem::discriminant(cell));
             match cell {

@@ -747,6 +747,35 @@ dependencies = [
 ]
 
 [[package]]
+name = "engine"
+version = "0.1.0"
+dependencies = [
+ "asset-importer-rs-core",
+ "asset-importer-rs-gltf",
+ "asset-importer-rs-scene",
+ "bytemuck",
+ "cgmath",
+ "console_error_panic_hook",
+ "console_log",
+ "cpal",
+ "egui",
+ "egui-wgpu",
+ "egui-winit",
+ "env_logger",
+ "image",
+ "log",
+ "pollster",
+ "raw-window-handle",
+ "rodio",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
+ "web-time",
+ "wgpu",
+ "winit",
+]
+
+[[package]]
 name = "enumflags2"
 version = "0.7.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -921,10 +950,10 @@ dependencies = [
  "egui",
  "egui-wgpu",
  "egui-winit",
+ "engine",
  "getrandom",
  "grid",
  "inline_tweak",
- "ponygame",
  "rand",
  "tiled",
  "wasm-bindgen",
@@ -1978,35 +2007,6 @@ name = "pollster"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2f3a9f18d041e6d0e102a0a46750538147e5e8992d3b4873aaafee2520b00ce3"
-
-[[package]]
-name = "ponygame"
-version = "0.1.0"
-dependencies = [
- "asset-importer-rs-core",
- "asset-importer-rs-gltf",
- "asset-importer-rs-scene",
- "bytemuck",
- "cgmath",
- "console_error_panic_hook",
- "console_log",
- "cpal",
- "egui",
- "egui-wgpu",
- "egui-winit",
- "env_logger",
- "image",
- "log",
- "pollster",
- "raw-window-handle",
- "rodio",
- "wasm-bindgen",
- "wasm-bindgen-futures",
- "web-sys",
- "web-time",
- "wgpu",
- "winit",
-]
 
 [[package]]
 name = "portable-atomic"

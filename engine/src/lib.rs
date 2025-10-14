@@ -15,11 +15,11 @@ pub mod ui;
 
 /// Our custom user event for winit. Used in part for asynchronously initializing
 /// the app in browser.
-pub enum PonyGameAppEvent {
-    Initialize(PonyGame)
+pub enum EngineAppEvent {
+    Initialize(Engine)
 }
 
-pub struct PonyGame {
+pub struct Engine {
     pub video: crate::Video,
     pub audio: crate::audio::Audio,
 
@@ -36,19 +36,19 @@ pub struct PonyGame {
 pub trait Gameplay {
     const GAME_TITLE: &'static str;
     const DEFAULT_TONEMAP: Tonemap;
-    fn new(engine: &mut PonyGame) -> Self;
-    fn tick(&mut self, engine: &mut PonyGame);
-    fn ui(&mut self, engine: &mut PonyGame, ctx: &egui::Context);
+    fn new(engine: &mut Engine) -> Self;
+    fn tick(&mut self, engine: &mut Engine);
+    fn ui(&mut self, engine: &mut Engine, ctx: &egui::Context);
 }
 
-struct PonyGameApp<G: Gameplay> {
-    inner: Option<(PonyGame, G)>,
+struct EngineApp<G: Gameplay> {
+    inner: Option<(Engine, G)>,
 
     // Keeps track of whether we've fired Video::new() yet or not.
-    init_proxy: Option<EventLoopProxy<PonyGameAppEvent>>,
+    init_proxy: Option<EventLoopProxy<EngineAppEvent>>,
 }
 
-impl PonyGame {
+impl Engine {
     pub fn get_cursor_position(&self) -> Vector2<f32> {
         // TODO: Don't use unwrap...
         self.video.id_map.iter().next().unwrap().1.cursor_position
@@ -103,7 +103,7 @@ impl PonyGame {
     }
 }
 
-impl<G: Gameplay> ApplicationHandler<PonyGameAppEvent> for PonyGameApp<G> {
+impl<G: Gameplay> ApplicationHandler<EngineAppEvent> for EngineApp<G> {
     fn resumed(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
         if let Some(init_proxy) = self.init_proxy.take() {
             Video::new::<G>(event_loop, init_proxy, G::GAME_TITLE)
@@ -152,9 +152,9 @@ impl<G: Gameplay> ApplicationHandler<PonyGameAppEvent> for PonyGameApp<G> {
         //engine.video.render();
     }
 
-    fn user_event(&mut self, event_loop: &ActiveEventLoop, event: PonyGameAppEvent) {
+    fn user_event(&mut self, event_loop: &ActiveEventLoop, event: EngineAppEvent) {
         match event {
-            PonyGameAppEvent::Initialize(mut engine) => {
+            EngineAppEvent::Initialize(mut engine) => {
                 engine.video.update_all_window_sizes();
 
                 let gameplay = G::new(&mut engine);
@@ -179,7 +179,7 @@ pub fn run_game_impl<G: Gameplay>() {
     // I'm not sure how often that actually happens...
     event_loop.set_control_flow(ControlFlow::Wait);
 
-    let mut app = PonyGameApp::<G> {
+    let mut app = EngineApp::<G> {
         inner: None,
         // Create an initial proxy used for sending the initialized engine back
         // to us, particularly relevant on WASM.
@@ -210,13 +210,13 @@ pub use log;
 macro_rules! game {
     ($gameplay:ty) => {
         pub fn run() {
-            ponygame::run_game_impl::<$gameplay>();
+            engine::run_game_impl::<$gameplay>();
         }
 
         #[cfg(target_arch = "wasm32")]
-        #[ponygame::wasm_bindgen::prelude::wasm_bindgen(start)]
+        #[engine::wasm_bindgen::prelude::wasm_bindgen(start)]
         pub fn run_web() {
-            ponygame::run_game_on_web_impl::<$gameplay>();
+            engine::run_game_on_web_impl::<$gameplay>();
         }
     }
 }

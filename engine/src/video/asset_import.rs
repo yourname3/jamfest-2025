@@ -4,7 +4,7 @@ use asset_importer_rs_gltf::Gltf2Importer;
 use asset_importer_rs_core::{AiImporter, AiImporterExt};
 use asset_importer_rs_scene::AiMesh;
 
-use crate::{gc::Gp, video::mesh_render_pipeline::{Mesh, Vertex}, PonyGame};
+use crate::{gc::Gp, video::mesh_render_pipeline::{Mesh, Vertex}, Engine};
 
 // How should meshs work?
 // 
@@ -130,7 +130,7 @@ pub fn import_mesh_set<const N: usize>(data: &[u8], mesh_names: &[&str; N]) -> O
     None
 }
 
-pub fn import_mesh_set_as_gc<const N: usize>(engine: &PonyGame, data: &[u8], mesh_names: &[&str; N]) -> Option<[Gp<Mesh>; N]> {
+pub fn import_mesh_set_as_gc<const N: usize>(engine: &Engine, data: &[u8], mesh_names: &[&str; N]) -> Option<[Gp<Mesh>; N]> {
     if let Some(meshes) = import_mesh_set(data, mesh_names) {
         let ready = core::array::from_fn(|idx| {
             Gp::new(Mesh::new(engine.render_ctx(), &meshes[idx]))

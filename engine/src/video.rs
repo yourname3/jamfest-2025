@@ -14,7 +14,7 @@ use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 use wgpu::util::DeviceExt;
 use winit::{dpi::{PhysicalSize, Size}, event::{MouseButton, WindowEvent}, event_loop::{ActiveEventLoop, EventLoopProxy}, window::{WindowAttributes, WindowId}};
 
-use crate::{gc::{Gp, GpMaybe}, ui::Egui, video::{camera::Camera, hdr_tonemap::{HdrTonemapPipeline, Tonemap}, sky_pipeline::SkyPipeline, texture::{DepthTexture, Texture}, world::{Viewport, World}}, Gameplay, PonyGame, PonyGameAppEvent};
+use crate::{gc::{Gp, GpMaybe}, ui::Egui, video::{camera::Camera, hdr_tonemap::{HdrTonemapPipeline, Tonemap}, sky_pipeline::SkyPipeline, texture::{DepthTexture, Texture}, world::{Viewport, World}}, Gameplay, Engine, EngineAppEvent};
 
 // Bundles together all the global state that a given part of the renderer might
 // need, i.e. the device, queue, etc.
@@ -732,7 +732,7 @@ impl Video {
         mut id_map: HashMap<WindowId, Window>,
         mut per: PerWindowRenderer,
         underlying_window: winit::window::Window,
-        proxy: EventLoopProxy<PonyGameAppEvent>,
+        proxy: EventLoopProxy<EngineAppEvent>,
     ) {
         per.resize(&renderer, 800, 600);
 
@@ -757,7 +757,7 @@ impl Video {
 
         let egui = Egui::new(&video);
 
-        let engine = PonyGame {
+        let engine = Engine {
             video,
             audio: crate::audio::Audio::initial(),
             main_world: world,
@@ -769,7 +769,7 @@ impl Video {
             last_tick: web_time::Instant::now(),
         };
 
-        assert!(proxy.send_event(PonyGameAppEvent::Initialize(engine))
+        assert!(proxy.send_event(EngineAppEvent::Initialize(engine))
             .is_ok())
     }
 
@@ -792,7 +792,7 @@ impl Video {
 
     pub fn new<G: Gameplay>(
         event_loop: &ActiveEventLoop,
-        proxy: EventLoopProxy<PonyGameAppEvent>,
+        proxy: EventLoopProxy<EngineAppEvent>,
         // TODO: Bundle properties together better?
         game_title: &str,
     ) {
@@ -851,7 +851,7 @@ impl Video {
     }
 
     /// For now, returns whether we should now close the application.
-    pub fn handle_win_event<G: Gameplay>(engine: &mut PonyGame, gameplay: &mut G, window_id: WindowId, win_event: WindowEvent) -> bool {
+    pub fn handle_win_event<G: Gameplay>(engine: &mut Engine, gameplay: &mut G, window_id: WindowId, win_event: WindowEvent) -> bool {
         let Some(window) = engine.video.id_map.get_mut(&window_id) else { return false; };
 
         // TODO: Probably each Window should get its own EGUI

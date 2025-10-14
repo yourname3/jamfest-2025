@@ -8,18 +8,18 @@ mod level;
 use egui::{Align2, Color32, Layout};
 use grid::Grid;
 use inline_tweak::tweak;
-use ponygame::cgmath::num_traits::pow;
-use ponygame::video::asset_import::import_mesh_set_as_gc;
-use ponygame::video::hdr_tonemap::Tonemap;
-use ponygame::{game, gc};
+use engine::cgmath::num_traits::pow;
+use engine::video::asset_import::import_mesh_set_as_gc;
+use engine::video::hdr_tonemap::Tonemap;
+use engine::{game, gc};
 // /
-use ponygame::cgmath::{point3, vec3, vec4, Matrix4, SquareMatrix, Vector3, Zero};
-use ponygame::cgmath;
-use ponygame::log;
+use engine::cgmath::{point3, vec3, vec4, Matrix4, SquareMatrix, Vector3, Zero};
+use engine::cgmath;
+use engine::log;
 
-use ponygame::video::camera::CameraProjection;
-use ponygame::video::{PBRShader, RenderCtx};
-use ponygame::{audio::Sound, gc::{Gp, GpMaybe}, video::{asset_import::import_binary_data, mesh_render_pipeline::{Mesh, MeshInstance}, texture::Texture, PBRMaterial}, PonyGame};
+use engine::video::camera::CameraProjection;
+use engine::video::{PBRShader, RenderCtx};
+use engine::{audio::Sound, gc::{Gp, GpMaybe}, video::{asset_import::import_binary_data, mesh_render_pipeline::{Mesh, MeshInstance}, texture::Texture, PBRMaterial}, Engine};
 
 use level::*;
 
@@ -45,7 +45,7 @@ impl InstancePool {
         }
     }
 
-    pub fn get(&self, engine: &PonyGame, mesh: &Gp<Mesh>, mat: &Gp<PBRMaterial>) -> Gp<MeshInstance> {
+    pub fn get(&self, engine: &Engine, mesh: &Gp<Mesh>, mat: &Gp<PBRMaterial>) -> Gp<MeshInstance> {
         let key = (
             mesh.get_gc_value_ptr() as *const _ as usize,
             mat.get_gc_value_ptr() as *const _ as usize);
@@ -68,14 +68,14 @@ impl InstancePool {
         retval
     }
 
-    pub fn get_at(&self, engine: &PonyGame, mesh: &Gp<Mesh>, mat: &Gp<PBRMaterial>, transform: Matrix4<f32>) -> Gp<MeshInstance> {
+    pub fn get_at(&self, engine: &Engine, mesh: &Gp<Mesh>, mat: &Gp<PBRMaterial>, transform: Matrix4<f32>) -> Gp<MeshInstance> {
         let mesh = self.get(engine, mesh, mat);
         mesh.transform.set(transform);
         mesh.update(engine.render_ctx());
         mesh
     }
 
-    pub fn get_at2(&self, engine: &PonyGame, mesh: &Gp<Mesh>, mat: &Gp<PBRMaterial>, transform: Matrix4<f32>, modulate: cgmath::Vector4<f32>) -> Gp<MeshInstance> {
+    pub fn get_at2(&self, engine: &Engine, mesh: &Gp<Mesh>, mat: &Gp<PBRMaterial>, transform: Matrix4<f32>, modulate: cgmath::Vector4<f32>) -> Gp<MeshInstance> {
         let mesh = self.get(engine, mesh, mat);
         mesh.transform.set(transform);
         mesh.modulate.set(modulate);
@@ -254,7 +254,7 @@ impl Selector {
         }
     }
 
-    pub fn push_mesh(&mut self, engine: &mut PonyGame) {
+    pub fn push_mesh(&mut self, engine: &mut Engine) {
         let transform = Matrix4::from_translation(vec3(self.x as f32, 0.0, self.y as f32));
         let mesh_instance = self.get_current_mesh();
 
@@ -266,7 +266,7 @@ impl Selector {
         }
     }
 
-    pub fn do_move(&mut self, engine: &mut PonyGame, assets: &Assets, level: &mut Level) {
+    pub fn do_move(&mut self, engine: &mut Engine, assets: &Assets, level: &mut Level) {
         if matches!(self.state, SelectorState::None) { return; }
 
         let Some(dev) = self.object.get() else { return; };
@@ -308,7 +308,7 @@ impl Selector {
         }
     }
 
-    pub fn update(&mut self, engine: &mut PonyGame, assets: &Assets, level: &mut Level) {
+    pub fn update(&mut self, engine: &mut Engine, assets: &Assets, level: &mut Level) {
         if self.is_moving {
             self.do_move(engine, assets, level);
             return;
@@ -451,7 +451,7 @@ macro_rules! lock_unlock {
 }
 
 impl Assets {
-    pub fn new(engine: &mut PonyGame) -> Self {
+    pub fn new(engine: &mut Engine) -> Self {
         let ctx = engine.render_ctx();
 
         let metal_031_a = texture_linear!(ctx, "./assets/mat/metal_031/albedo.png");
@@ -650,7 +650,7 @@ impl Assets {
         vec3(f32::powf(v.x, pow), f32::powf(v.y, pow), f32::powf(v.z, pow))
     }
 
-    fn laser(&self, engine: &PonyGame, transform: cgmath::Matrix4<f32>, color: Vector3<f32>) -> Gp<MeshInstance> {
+    fn laser(&self, engine: &Engine, transform: cgmath::Matrix4<f32>, color: Vector3<f32>) -> Gp<MeshInstance> {
         let color = Self::the_pow(color, 2.2);
 
         self.pool.get_at2(engine,
@@ -659,7 +659,7 @@ impl Assets {
             transform, color.extend(1.0))
     }
 
-    fn goal_light(&self, engine: &PonyGame, transform: cgmath::Matrix4<f32>, color: Vector3<f32>) -> Gp<MeshInstance> {
+    fn goal_light(&self, engine: &Engine, transform: cgmath::Matrix4<f32>, color: Vector3<f32>) -> Gp<MeshInstance> {
         let color = Self::the_pow(color, 2.2);
 
         self.pool.get_at2(engine,
@@ -712,11 +712,11 @@ static LEVELS: [&str; 7] = [
 
 impl GameplayLogic {
     #[inline_tweak::tweak_fn]
-    pub fn tweak_scene(&mut self, engine: &mut PonyGame) {
+    pub fn tweak_scene(&mut self, engine: &mut Engine) {
         engine.main_world.lights[0].color.set(vec3(5.0, 5.0, 5.0));
     }
 
-    fn open_level(&mut self, engine: &mut PonyGame, idx: usize) {
+    fn open_level(&mut self, engine: &mut Engine, idx: usize) {
         self.assets.pool_static.recycle();
         if let Some(name) = LEVELS.get(idx) {
             self.level = Level::new_from_map(&format!("./levels/{}.tmx", name), engine, &self.assets); 
@@ -732,17 +732,17 @@ impl GameplayLogic {
         }
     }
 
-    fn click(&mut self, engine: &mut PonyGame) {
+    fn click(&mut self, engine: &mut Engine) {
         engine.audio.play_speed(&self.assets.click, rand::random_range(0.95..1.05));
     }
 }
 
 
-impl ponygame::Gameplay for GameplayLogic {
+impl engine::Gameplay for GameplayLogic {
     const GAME_TITLE: &'static str = "ben's beams";
-    const DEFAULT_TONEMAP: ponygame::video::hdr_tonemap::Tonemap = Tonemap::None;
+    const DEFAULT_TONEMAP: engine::video::hdr_tonemap::Tonemap = Tonemap::None;
 
-    fn new(engine: &mut PonyGame) -> Self {
+    fn new(engine: &mut Engine) -> Self {
        let assets = Assets::new(engine);
        let ctx = engine.render_ctx();
 
@@ -793,7 +793,7 @@ impl ponygame::Gameplay for GameplayLogic {
 
 
 
-    fn tick(&mut self, engine: &mut PonyGame) {
+    fn tick(&mut self, engine: &mut Engine) {
         self.theta += 0.03;
         self.tweak_scene(engine);
 
@@ -840,7 +840,7 @@ impl ponygame::Gameplay for GameplayLogic {
 
     
 
-    fn ui(&mut self, engine: &mut PonyGame, ctx: &egui::Context) {
+    fn ui(&mut self, engine: &mut Engine, ctx: &egui::Context) {
         // We have to set this on the engine's Window object
         // ctx.set_zoom_factor(4.0);
 

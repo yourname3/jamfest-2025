@@ -1,4 +1,4 @@
-use ponygame::game_main;
+use engine::game_main;
 use game::run;
 
 game_main!();
