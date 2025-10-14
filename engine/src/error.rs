@@ -1,4 +1,4 @@
-pub struct PonyError {
+pub struct EngineError {
     // TODO????
 
     // For now, we'll just use a message string. We might swap this out
@@ -6,15 +6,15 @@ pub struct PonyError {
     message: String,
 }
 
-impl From<image::ImageError> for PonyError {
+impl From<image::ImageError> for EngineError {
     fn from(value: image::ImageError) -> Self {
         Self { message: format!("{value}") }
     }
 }
 
-pub type PonyResult<T> = Result<T, PonyError>;
+pub type EngineResult<T> = Result<T, EngineError>;
 
-impl std::fmt::Debug for PonyError {
+impl std::fmt::Debug for EngineError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(&self.message)
     }

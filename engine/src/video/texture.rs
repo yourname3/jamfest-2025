@@ -3,7 +3,7 @@ use std::ops::Deref;
 use image::{EncodableLayout, GenericImage, GenericImageView, ImageBuffer, Rgba};
 use wgpu::Extent3d;
 
-use crate::{error::PonyResult, video::RenderCtx};
+use crate::{error::EngineResult, video::RenderCtx};
 
 pub struct DepthTexture {
     pub texture: wgpu::Texture,
@@ -50,7 +50,7 @@ impl Texture {
         bytes: &[u8],
         label: Option<&str>,
         generate_mipmaps: bool,
-    ) -> PonyResult<Self> {
+    ) -> EngineResult<Self> {
         let img = image::load_from_memory(bytes)?;
         Ok(Self::from_image_rgba8srgb(ctx, &img, label, generate_mipmaps))
     }
@@ -60,7 +60,7 @@ impl Texture {
         bytes: &[u8],
         label: Option<&str>,
         generate_mipmaps: bool,
-    ) -> PonyResult<Self> {
+    ) -> EngineResult<Self> {
         let img = image::load_from_memory(bytes)?;
         Ok(Self::from_image_rgba8linear(ctx, &img, label, generate_mipmaps))
     }
@@ -70,7 +70,7 @@ impl Texture {
         bytes: &[u8],
         label: Option<&str>,
         generate_mipmaps: bool,
-    ) -> PonyResult<Self> {
+    ) -> EngineResult<Self> {
         let img = image::load_from_memory(bytes)?;
         Ok(Self::from_image_rgba16unorm(ctx, &img, label, generate_mipmaps))
     }
