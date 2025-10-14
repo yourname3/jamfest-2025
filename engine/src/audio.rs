@@ -1,4 +1,4 @@
-use rodio::{buffer, mixer::Mixer, OutputStream, Source};
+use rodio::{OutputStream, Source};
 
 enum AudioBackend {
     Open(OutputStream),

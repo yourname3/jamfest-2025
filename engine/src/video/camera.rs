@@ -1,8 +1,8 @@
 use std::cell::Cell;
 
-use cgmath::{vec2, InnerSpace, Matrix4, SquareMatrix, Vector2, Vector3};
+use cgmath::{vec2, InnerSpace, SquareMatrix, Vector2, Vector3};
 
-use crate::video::{texture::Texture, world::{Viewport, ViewportUniform}, RenderCtx, UniformBuffer};
+use crate::video::world::{Viewport, ViewportUniform};
 
 pub const OPENGL_TO_WGPU_MATRIX: cgmath::Matrix4<f32> = cgmath::Matrix4::from_cols(
     cgmath::Vector4::new(1.0, 0.0, 0.0, 0.0),

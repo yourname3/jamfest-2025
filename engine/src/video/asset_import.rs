@@ -1,7 +1,7 @@
 use std::{io::Cursor, path::Path};
 
 use asset_importer_rs_gltf::Gltf2Importer;
-use asset_importer_rs_core::{AiImporter, AiImporterExt};
+use asset_importer_rs_core::AiImporterExt;
 use asset_importer_rs_scene::AiMesh;
 
 use crate::{gc::Gp, video::mesh_render_pipeline::{Mesh, Vertex}, Engine};

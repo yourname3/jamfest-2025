@@ -1,4 +1,3 @@
-use wgpu::util::DeviceExt;
 
 use crate::video::{hdr_tonemap::HdrTonemapPipeline, RenderCtx};
 

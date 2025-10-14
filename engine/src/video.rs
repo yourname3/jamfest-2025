@@ -6,15 +6,15 @@ pub mod hdr_tonemap;
 pub mod camera;
 pub mod world;
 
-use std::{cell::{Cell, RefCell}, collections::HashMap, mem::MaybeUninit, rc::Rc};
+use std::{collections::HashMap, mem::MaybeUninit};
 use cgmath::{vec3, Vector2, Zero};
 use egui::FullOutput;
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 
 use wgpu::util::DeviceExt;
-use winit::{dpi::{PhysicalSize, Size}, event::{MouseButton, WindowEvent}, event_loop::{ActiveEventLoop, EventLoopProxy}, window::{WindowAttributes, WindowId}};
+use winit::{dpi::PhysicalSize, event::{MouseButton, WindowEvent}, event_loop::{ActiveEventLoop, EventLoopProxy}, window::WindowId};
 
-use crate::{gc::{Gp, GpMaybe}, ui::Egui, video::{camera::Camera, hdr_tonemap::{HdrTonemapPipeline, Tonemap}, sky_pipeline::SkyPipeline, texture::{DepthTexture, Texture}, world::{Viewport, World}}, Gameplay, Engine, EngineAppEvent};
+use crate::{gc::{Gp, GpMaybe}, ui::Egui, video::{camera::Camera, hdr_tonemap::Tonemap, sky_pipeline::SkyPipeline, texture::Texture, world::{Viewport, World}}, Gameplay, Engine, EngineAppEvent};
 
 // Bundles together all the global state that a given part of the renderer might
 // need, i.e. the device, queue, etc.
@@ -822,14 +822,14 @@ impl Video {
         let window = event_loop.create_window(attributes)
         .expect("Initial window");
     
-        let mut id_map = HashMap::new();
+        let id_map = HashMap::new();
         
         // On wasm, we cannot use any executor except for the browser. One
         // particularly notable fact: pollster will use e.g. a condvar which
         // will panic.
         #[cfg(not(target_arch = "wasm32"))]
         {
-            let (renderer, mut per) = pollster::block_on(Renderer::new::<G>(&window));
+            let (renderer, per) = pollster::block_on(Renderer::new::<G>(&window));
             Self::finish_initializing(renderer, id_map, per, window, proxy);
         }
 

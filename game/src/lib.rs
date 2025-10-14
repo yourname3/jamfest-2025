@@ -1,14 +1,9 @@
-use std::cell::{Ref, RefCell};
+use std::cell::RefCell;
 use std::collections::HashMap;
-use std::f32::consts::PI;
-use std::hash::Hash;
 
 mod level;
 
-use egui::{Align2, Color32, Layout};
-use grid::Grid;
-use inline_tweak::tweak;
-use engine::cgmath::num_traits::pow;
+use egui::Align2;
 use engine::video::asset_import::import_mesh_set_as_gc;
 use engine::video::hdr_tonemap::Tonemap;
 use engine::{game, gc};
@@ -766,7 +761,7 @@ impl engine::Gameplay for GameplayLogic {
             zoom: 10.0,
         });
 
-        let mut level = Level::new_from_map("./levels/hook_something.tmx", engine, &assets);
+        let level = Level::new_from_map("./levels/hook_something.tmx", engine, &assets);
        // for i in 0..5 {
         //level.try_place(2, 2, DeviceTy::Mix);
         

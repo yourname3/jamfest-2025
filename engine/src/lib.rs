@@ -2,7 +2,7 @@ use cgmath::Vector2;
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
 
-use winit::{application::ApplicationHandler, event::WindowEvent, event_loop::{ActiveEventLoop, ControlFlow, EventLoop, EventLoopProxy}};
+use winit::{application::ApplicationHandler, event_loop::{ActiveEventLoop, ControlFlow, EventLoop, EventLoopProxy}};
 
 use crate::{gc::Gp, video::{camera::Camera, hdr_tonemap::Tonemap, world::{Viewport, World}, RenderCtx, Video, Window}};
 

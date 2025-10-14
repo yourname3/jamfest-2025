@@ -1,6 +1,6 @@
 use std::ops::Deref;
 
-use image::{metadata::Cicp, EncodableLayout, GenericImage, GenericImageView, ImageBuffer, Rgba};
+use image::{EncodableLayout, GenericImage, GenericImageView, ImageBuffer, Rgba};
 use wgpu::Extent3d;
 
 use crate::{error::PonyResult, video::RenderCtx};

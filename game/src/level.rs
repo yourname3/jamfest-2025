@@ -1,19 +1,15 @@
 use std::cell::Cell;
-use std::cmp::max;
-use std::f32::consts::PI;
 
 use grid::Grid;
-use inline_tweak::tweak;
-use engine::{game, gc};
+use engine::gc;
 // /
-use engine::cgmath::{point3, vec3, AbsDiffEq, InnerSpace, Matrix4, SquareMatrix, Vector3};
+use engine::cgmath::{point3, vec3, AbsDiffEq, InnerSpace, Matrix4, Vector3};
 use engine::cgmath;
 use engine::log;
 
 use engine::video::camera::CameraProjection;
-use engine::video::{PBRShader, RenderCtx};
-use engine::{audio::Sound, gc::{Gp, GpMaybe}, video::{asset_import::import_binary_data, mesh_render_pipeline::{Mesh, MeshInstance}, texture::Texture, PBRMaterial}, Engine};
-use tiled::{LayerTile, Loader, PropertyValue, ResourceReader};
+use engine::{gc::Gp, video::{mesh_render_pipeline::{Mesh, MeshInstance}, PBRMaterial}, Engine};
+use tiled::{Loader, PropertyValue};
 
 use crate::{Assets, SelectorState};
 
@@ -510,7 +506,7 @@ impl Level {
         // Zoom is based on height, so base the desired value from horizontal on
         // the height/width conversion factor.
         let desired_zoom_h = ((self.bounds.2 - self.bounds.0) + 2) as f32 * viewport.height as f32 / viewport.width as f32;
-        let desired_zoom_w = ((self.bounds.3 - self.bounds.1) as f32 + 2.0 * 0.66);
+        let desired_zoom_w = (self.bounds.3 - self.bounds.1) as f32 + 2.0 * 0.66;
 
         engine.main_camera.position.set(point3(x_pos, 15.0, y_pos + 3.0));
         engine.main_camera.target.set(point3(x_pos, 0.0, y_pos + 0.0));
