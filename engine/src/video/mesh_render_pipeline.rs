@@ -35,6 +35,7 @@ pub struct Mesh {
     vertex_buffer: VertexBuffer,
     index_buffer: IndexBuffer,
 
+    #[expect(unused)]
     vertex_count: u32,
     index_count: u32,
 }

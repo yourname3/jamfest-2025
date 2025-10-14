@@ -11,7 +11,7 @@ pub struct Light3D {
 
 #[repr(C)]
 #[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
-struct Light3DUniform {
+pub struct Light3DUniform {
     direction: [f32; 3],
     _pad: u32,
     color: [f32; 3],

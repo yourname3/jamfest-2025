@@ -181,11 +181,12 @@ pub struct PerWindowRenderer {
     pub viewport: Viewport,
 }
 
-struct Samplers {
+pub struct Samplers {
     linear_clamp: wgpu::Sampler,
     nearest_clamp: wgpu::Sampler,
 
     // The sampler used for sampling depth textures (specifically our DepthTexture).
+    #[expect(unused)]
     depth_texture_sampler: wgpu::Sampler,
 }
 
@@ -251,13 +252,14 @@ impl Samplers {
 // What we'll eventually want to do is have a set of common bind group layouts
 // for some number of texture slots, so that textures can easily be re-used
 // with the same BindGroup (i.e. one BindGroup per texture per slot).
-struct Layouts {
+pub struct Layouts {
     // TODO
 
     // Do we actually want to necessarily bind the texture and the sampler together?
     // It might be better to bind them separately so they can be swapped out separately
     tex_sampler: wgpu::BindGroupLayout,
 
+    #[expect(unused)]
     single_uniform: wgpu::BindGroupLayout,
 
     pbr_material: wgpu::BindGroupLayout,
@@ -268,12 +270,13 @@ struct Layouts {
 
     /// Layout for a pipeline that uses the World bind group and the PBR bind
     /// group.
+    #[expect(unused)]
     pipeline_world_pbr: wgpu::PipelineLayout,
     /// Layout for a pipeline that uses the World bind group.
     pipeline_world: wgpu::PipelineLayout,
 }
 
-struct Shaders {
+pub struct Shaders {
     pbr_default: Gp<PBRShader>,
 }
 
@@ -890,11 +893,11 @@ impl Video {
                 engine.video.id_map.remove(&window_id);
                 return engine.video.id_map.is_empty();
             },
-            WindowEvent::CursorMoved { device_id, position } => {
+            WindowEvent::CursorMoved { device_id: _, position } => {
                 window.cursor_position.x = position.x as f32;
                 window.cursor_position.y = position.y as f32;
             },
-            WindowEvent::MouseInput { device_id, state, button } => {
+            WindowEvent::MouseInput { device_id: _, state, button } => {
                 if matches!(button, MouseButton::Left) {
                     window.left_mouse_down = state.is_pressed();
                 }

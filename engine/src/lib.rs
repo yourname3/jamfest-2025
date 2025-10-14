@@ -112,7 +112,7 @@ impl<G: Gameplay> ApplicationHandler<EngineAppEvent> for EngineApp<G> {
 
     fn window_event(
         &mut self,
-        event_loop: &winit::event_loop::ActiveEventLoop,
+        _event_loop: &winit::event_loop::ActiveEventLoop,
         window_id: winit::window::WindowId,
         event: winit::event::WindowEvent,
     ) {
@@ -135,7 +135,12 @@ impl<G: Gameplay> ApplicationHandler<EngineAppEvent> for EngineApp<G> {
                 // instead.
                 std::process::exit(0);
             }
-            event_loop.exit();
+            #[cfg(target_arch = "wasm32")]
+            {
+                // This will blow up on WASM, but we shouldn't be exiting anyway,
+                // so, it's OK...
+                event_loop.exit();
+            }
         }
 
        
@@ -152,7 +157,7 @@ impl<G: Gameplay> ApplicationHandler<EngineAppEvent> for EngineApp<G> {
         //engine.video.render();
     }
 
-    fn user_event(&mut self, event_loop: &ActiveEventLoop, event: EngineAppEvent) {
+    fn user_event(&mut self, _event_loop: &ActiveEventLoop, event: EngineAppEvent) {
         match event {
             EngineAppEvent::Initialize(mut engine) => {
                 engine.video.update_all_window_sizes();

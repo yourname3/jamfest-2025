@@ -1,6 +1,6 @@
 use std::ops::Deref;
 
-use image::{EncodableLayout, GenericImage, GenericImageView, ImageBuffer, Rgba};
+use image::{EncodableLayout, GenericImageView, ImageBuffer, Rgba};
 use wgpu::Extent3d;
 
 use crate::{error::EngineResult, video::RenderCtx};
@@ -272,27 +272,5 @@ impl Texture {
             texture,
             view,
         }
-    }
-}
-
-pub struct Sampler {
-    sampler: wgpu::Sampler
-}
-
-impl Sampler {
-    pub fn new(ctx: &RenderCtx) -> Self {
-        let sampler = ctx.device.create_sampler(
-            &wgpu::SamplerDescriptor {
-                address_mode_u: wgpu::AddressMode::ClampToEdge,
-                address_mode_v: wgpu::AddressMode::ClampToEdge,
-                address_mode_w: wgpu::AddressMode::ClampToEdge,
-                mag_filter: wgpu::FilterMode::Nearest,
-                min_filter: wgpu::FilterMode::Nearest,
-                mipmap_filter: wgpu::FilterMode::Nearest,
-                ..Default::default()
-            }
-        );
-
-        Sampler { sampler }
     }
 }

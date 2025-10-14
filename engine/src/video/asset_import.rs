@@ -76,7 +76,7 @@ pub fn import_binary_data(data: &[u8]) -> Option<MeshData> {
     log::info!("begin asset import");
     
     let importer = Gltf2Importer::new();
-    let scene = importer.read_file(Path::new("builtin.gltf"), |path| {
+    let scene = importer.read_file(Path::new("builtin.gltf"), |_| {
         Ok(Cursor::new(data))
     }).unwrap();
 
@@ -101,7 +101,7 @@ pub fn import_mesh_set<const N: usize>(data: &[u8], mesh_names: &[&str; N]) -> O
     let mut imported = core::array::from_fn::<_, N, _>(|_| MeshData::empty());
 
     let importer = Gltf2Importer::new();
-    let scene = importer.read_file(Path::new("builtin.gltf"), |path| {
+    let scene = importer.read_file(Path::new("builtin.gltf"), |_| {
         Ok(Cursor::new(data))
     }).unwrap();
 
