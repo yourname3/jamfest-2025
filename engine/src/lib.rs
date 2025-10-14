@@ -38,9 +38,28 @@ pub struct Engine {
 pub trait Gameplay {
     const GAME_TITLE: &'static str;
     const DEFAULT_TONEMAP: Tonemap;
+
     fn new(engine: &mut Engine) -> Self;
-    fn tick(&mut self, engine: &mut Engine);
-    fn ui(&mut self, engine: &mut Engine, ctx: &egui::Context);
+
+    /// The framerate-independent tick function. Similar to _physics_process
+    /// in Godot.
+    fn tick(&mut self, engine: &mut Engine) {
+        let _ = engine;
+    }
+
+    /// Callback for the Gameplay to draw a GUI. This currently applies only
+    /// to the main window. Hopefully in the future it will be more flexible.
+    fn ui(&mut self, engine: &mut Engine, ctx: &egui::Context) {
+        let _ = engine;
+        let _ = ctx;
+    }
+
+    /// Callback for the Gameplay to handle winit WindowEvents with custom 
+    /// logic.
+    fn event(&mut self, engine: &mut Engine, event: &winit::event::WindowEvent) {
+        let _ = engine;
+        let _ = event;
+    }
 }
 
 struct EngineApp<G: Gameplay> {
@@ -134,7 +153,7 @@ impl<G: Gameplay> ApplicationHandler<EngineAppEvent> for EngineApp<G> {
                 engine.input.update_button(input::AnyButton::PhysicalKey(event.physical_key),
                     event.state.is_pressed());
             }
-            WindowEvent::MouseInput { device_id, state, button } => {
+            WindowEvent::MouseInput { device_id: _, state, button } => {
                 engine.input.update_button(input::AnyButton::Mouse(*button), state.is_pressed());
             }
             _ => {}

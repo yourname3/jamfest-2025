@@ -844,13 +844,28 @@ impl Video {
     }
 
     /// For now, returns whether we should now close the application.
-    pub fn handle_win_event<G: Gameplay>(engine: &mut Engine, gameplay: &mut G, window_id: WindowId, win_event: WindowEvent) -> bool {
-        let Some(window) = engine.video.id_map.get_mut(&window_id) else { return false; };
+    pub fn handle_win_event<G: Gameplay>(engine: &mut Engine, gameplay: &mut G, window_id: WindowId, win_event: WindowEvent) -> bool {       
+        {
+            let Some(window) = engine.video.id_map.get_mut(&window_id) else { return false; };
 
-        // TODO: Probably each Window should get its own EGUI
-        let egui_res = engine.egui.egui_state.on_window_event(&window.sdl, &win_event);
-        if egui_res.repaint { window.sdl.request_redraw(); }
-        if egui_res.consumed { return false; }
+            // TODO: Probably each Window should get its own EGUI
+            let egui_res = engine.egui.egui_state.on_window_event(&window.sdl, &win_event);
+            if egui_res.repaint { window.sdl.request_redraw(); }
+            if egui_res.consumed { return false; }
+        }
+
+        // Let the gameplay provide custom logic as well.
+        //
+        // TODO: It would be nice to provide the Window to this separately.
+        // I'm not sure exactly how I want to do that yet.
+        //
+        // TODO: In order to borrow the engine mutably here, we have to
+        // drop the window borrow, which is annoying. Maybe if the windows
+        // were GC types it would help?
+        gameplay.event(engine, &win_event);
+
+        // Annoying...
+        let Some(window) = engine.video.id_map.get_mut(&window_id) else { return false; };
 
         match win_event {
             WindowEvent::RedrawRequested => {
