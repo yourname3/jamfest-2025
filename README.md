@@ -128,3 +128,9 @@ are simply leaked. So instead, the `InstancePool` struct is used to re-use a
 small number of `MeshInstance` structs, while still allowing the code to
 dynamically build the set of rendered `MeshInstance`s each frame.
 
+### What's with lib.rs and main.rs?
+
+This is something to do with how we build with wasm-pack. I'm not sure exactly
+what the details are, but it's something along the lines of: we need to build
+as a `cdylib` for the web, and then have a function that is essentially our
+entry point, marked with `#[wasm_bindgen(start)]`.
