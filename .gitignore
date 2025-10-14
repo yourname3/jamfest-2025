@@ -4,3 +4,8 @@
 /.cargo
 
 *.tiled-session
+
+# Local backup files don't really need to
+# be committed to git.
+*.blend1
+*.kra~
