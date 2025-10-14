@@ -45,22 +45,6 @@ impl DeviceTy {
         }
     }
 
-    pub fn get_bounds(&self) -> (i32, i32) {
-        match self {
-            DeviceTy::Mix => (1, 2),
-            DeviceTy::Emitter(_) => (1, 1),
-            DeviceTy::Goal(_) => (1, 1),
-            DeviceTy::Hook => (1, 2),
-            DeviceTy::Ingot => (1, 1),
-            DeviceTy::Mix2 => (1, 3),
-            DeviceTy::Nut => (1, 1),
-            DeviceTy::Bolt => (1, 1),
-            DeviceTy::Collect => (1, 3),
-            DeviceTy::Swap => (2, 3),
-            DeviceTy::Split => (1, 5),
-        }
-    }
-
     pub fn get_selector(&self) -> SelectorState {
         match self {
             DeviceTy::Mix => SelectorState::Vert2,
@@ -190,9 +174,8 @@ pub enum GridCell {
     Void,
     /// Empty tile: We can place things there.
     Empty,
-    Wall,
     DeviceRoot(Gp<Device>),
-    DeviceEtc(Gp<Device>),
+    DeviceEtc,
 }
 
 impl std::fmt::Debug for GridCell {
@@ -200,9 +183,8 @@ impl std::fmt::Debug for GridCell {
         match self {
             Self::Void => write!(f, "Void"),
             Self::Empty => write!(f, "Empty"),
-            Self::Wall => write!(f, "Wall"),
-            Self::DeviceRoot(arg0) => write!(f, "DeviceRoot"),
-            Self::DeviceEtc(arg0) => write!(f, "DeviceEtc"),
+            Self::DeviceRoot(_) => write!(f, "DeviceRoot"),
+            Self::DeviceEtc => write!(f, "DeviceEtc"),
         }
     }
 }
@@ -229,10 +211,6 @@ pub struct Laser {
     pub y: i32,
     pub length: i32,
     pub value: LaserValue,
-}
-
-pub struct LevelLoader {
-
 }
 
 macro_rules! tiled_file {
@@ -277,57 +255,6 @@ pub struct Level {
 }
 
 impl Level {
-    // /// Shouldl be called once, to instantiate all the floor meshes.
-    // fn build_floor_meshes(&mut self, engine: &Engine, assets: &Assets) {
-    //     // For now, just put one every spot on the grid...?
-    //     for ((y, x), cell) in self.grid.indexed_iter() {
-    //         let (mesh, mat) = match cell {
-    //             GridCell::Wall => (&assets.wall_, &assets.wall_mat),
-    //             _ => (&assets.floor_tile, &assets.floor_tile_mat)
-    //         };
-
-    //         let instance = Gp::new(MeshInstance::new(
-    //             engine.render_ctx(),
-    //             mesh.clone(),
-    //             mat.clone(),
-    //             Matrix4::from_translation(vec3(x as f32, 0.0, y as f32))
-    //         ));
-    //         //log::info!("instantiate floor mesh @ {},{}", x, y);
-    //         self.floor_meshes.push(instance);
-    //     }
-    // }
-
-    fn build_debug_border(&mut self) {
-        for cell in self.grid.iter_row_mut(0) {
-            *cell = GridCell::Wall;
-        }
-        for cell in self.grid.iter_row_mut(self.grid.rows() - 1) {
-            *cell = GridCell::Wall;
-        }
-
-        for cell in self.grid.iter_col_mut(0) {
-            *cell = GridCell::Wall;
-        }
-        for cell in self.grid.iter_col_mut(self.grid.cols() - 1) {
-            *cell = GridCell::Wall;
-        }
-    }
-
-    // pub fn new(width: usize, height: usize, engine: &Engine, assets: &Assets) -> Level {
-    //     let mut level = Level {
-    //         // Use column-major order so that when we iterate over 
-    //         floor_meshes: Vec::new(),
-    //         grid: Grid::new_with_order(height, width, grid::Order::ColumnMajor),
-    //         lasers: Vec::new(),
-    //         h_laser_ends: Grid::new_with_order(height, width, grid::Order::ColumnMajor),
-    //     };
-
-    //     level.build_debug_border();
-    //     level.build_floor_meshes(engine, assets);
-
-    //     level
-    // }
-
     pub fn spawn_static_tile(&mut self, engine: &Engine, assets: &Assets, mesh: &Gp<Mesh>, mat: &Gp<PBRMaterial>, x: i32, y: i32) {
         let instance = assets.pool_static.get_at(
             engine,
@@ -391,7 +318,7 @@ impl Level {
         let height = floors.height().unwrap();
         for x in 0..width {
             for y in 0..height {
-                if let Some(tile) = floors.get_tile(x as i32, y as i32) {
+                if let Some(_) = floors.get_tile(x as i32, y as i32) {
                     let Some((mut min_x, mut min_y, mut max_x, mut max_y)) = actual_bounds else { actual_bounds = Some((x, y, x, y)); continue; };
 
                     if x < min_x { min_x = x; }
@@ -493,8 +420,6 @@ impl Level {
             }
         }
 
-        //level.build_floor_meshes(engine, assets);
-
         level
     }
 
@@ -559,7 +484,7 @@ impl Level {
         for cell in dev.ty.get_cells() {
             *self.grid.get_mut((y + cell.1) as usize, (x + cell.0) as usize).unwrap() = 
                 if matches!(cell, (0, 0)) { GridCell::DeviceRoot(dev.clone()) } 
-                else { GridCell::DeviceEtc(dev.clone()) };
+                else { GridCell::DeviceEtc };
         }
     }
 

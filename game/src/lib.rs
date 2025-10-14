@@ -117,6 +117,7 @@ struct Assets {
     node_mix2: Gp<Mesh>,
     node_nut: Gp<Mesh>,
     node_bolt: Gp<Mesh>,
+    #[expect(unused)]
     node_prism: Gp<Mesh>,
     node_split: Gp<Mesh>,
     node_swap: Gp<Mesh>,
@@ -126,6 +127,7 @@ struct Assets {
     node_mix2_mat: LockUnlockMat,
     node_nut_mat: LockUnlockMat,
     node_bolt_mat: LockUnlockMat,
+    #[expect(unused)]
     node_prism_mat: LockUnlockMat,
     node_split_mat: LockUnlockMat,
     node_swap_mat: LockUnlockMat,
@@ -170,8 +172,6 @@ struct Assets {
     wall_br_i: Gp<Mesh>,
 
     wall_mat: Gp<PBRMaterial>,
-
-    sfx0: Sound,
 }
 
 enum SelectorState {
@@ -411,6 +411,7 @@ macro_rules! texture_linear {
     }
 }
 
+#[allow(unused)]
 macro_rules! texture_dummy {
     ($ctx:expr) => {
         Texture::dummy($ctx, Some("texture_dummy"))
@@ -629,8 +630,6 @@ impl Assets {
                 shader: laser_shader.clone(),
                 ..PBRMaterial::default(ctx)
             }),
-
-            sfx0: sfx!("../test/test_sfx.wav")
         }
     }
 
@@ -688,12 +687,6 @@ pub struct GameplayLogic {
 }
 
 // meow
-
-macro_rules! tweak_vec3 {
-    ($x:expr, $y:expr, $z:expr) => {
-        vec3(inline_tweak::tweak!($x), inline_tweak::tweak!($y), inline_tweak::tweak!($z))
-    };
-}
 
 static LEVELS: [&str; 7] = [
     "intro",
