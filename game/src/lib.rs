@@ -1,5 +1,6 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::ops::Range;
 
 mod level;
 
@@ -17,6 +18,7 @@ use engine::video::{PBRShader, RenderCtx};
 use engine::{audio::Sound, gc::{Gp, GpMaybe}, video::{asset_import::import_binary_data, mesh_render_pipeline::{Mesh, MeshInstance}, texture::Texture, PBRMaterial}, Engine};
 
 use level::*;
+use smallrand::SmallRng;
 
 // Used cause each material has separate decals, and we need to be able to swap
 // out the color.
@@ -93,12 +95,38 @@ impl InstancePool {
     }
 }
 
+struct Rng {
+    inner: RefCell<SmallRng>,
+}
+
+impl Rng {
+    pub fn new() -> Self {
+        Rng {
+            // For this game, we don't care if we get the same output every time.
+            inner: RefCell::new(SmallRng::from_seed(0))
+        }
+    }
+
+    pub fn choose<'a, T>(&self, slice: &'a [T]) -> &'a T {
+        let mut rng = self.inner.borrow_mut();
+        let idx = rng.range::<usize>(0..slice.len());
+        &slice[idx]
+    }
+
+    pub fn range(&self, range: Range<f32>) -> f32 {
+        let mut rng = self.inner.borrow_mut();
+        rng.range(range)
+    }
+}
+
 struct Assets {
     horse_mesh: Gp<Mesh>,
     horse_material: Gp<PBRMaterial>,
 
     pool: InstancePool,
     pool_static: InstancePool,
+
+    rng: Rng,
 
     node_mix: Gp<Mesh>,
     node_mix_mat: LockUnlockMat,
@@ -287,19 +315,17 @@ impl Selector {
 
         if last_x != self.x || last_y != self.y {
             if valid {
-                use rand::seq::IndexedRandom;
-                let mut rng = rand::rng();
-                engine.audio.play_speed(assets.metal_sfx.choose(&mut rng).unwrap(), rand::random_range(0.95..1.05));
+                engine.audio.play_speed(assets.rng.choose(&assets.metal_sfx), assets.rng.range(0.95..1.05));
             }
             else {
-                engine.audio.play_speed(&assets.move_err, rand::random_range(0.95..1.05));
+                engine.audio.play_speed(&assets.move_err, assets.rng.range(0.95..1.05));
             }
         }
 
         if !engine.get_main_window().left_mouse_down {
             self.is_moving = false;
             level.finish_move_from(self.start_x, self.start_y, &dev, self.x, self.y);
-            engine.audio.play_speed(&assets.metal_putdown, rand::random_range(0.95..1.05));
+            engine.audio.play_speed(&assets.metal_putdown, assets.rng.range(0.95..1.05));
         }
     }
 
@@ -384,7 +410,7 @@ impl Selector {
 
                     if engine.get_main_window().left_mouse_just_pressed() {
                         self.is_moving = true;
-                        engine.audio.play_speed(&assets.metal_pickup, rand::random_range(0.95..1.05));
+                        engine.audio.play_speed(&assets.metal_pickup, assets.rng.range(0.95..1.05));
                     }
                     return;
                 }
@@ -537,6 +563,8 @@ impl Assets {
 
             pool: InstancePool::new(),
             pool_static: InstancePool::new(),
+
+            rng: Rng::new(),
 
             metal_sfx: [
                 sfx!("./assets/metal_1.wav"),
@@ -721,7 +749,7 @@ impl GameplayLogic {
     }
 
     fn click(&mut self, engine: &mut Engine) {
-        engine.audio.play_speed(&self.assets.click, rand::random_range(0.95..1.05));
+        engine.audio.play_speed(&self.assets.click, self.assets.rng.range(0.95..1.05));
     }
 }
 
