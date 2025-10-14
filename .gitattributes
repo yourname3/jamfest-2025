@@ -1,1 +1,0 @@
-game/src/assets/envmap.exr filter=lfs diff=lfs merge=lfs -text
