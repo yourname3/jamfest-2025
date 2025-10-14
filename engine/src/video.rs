@@ -705,19 +705,12 @@ pub struct Window {
 
     pub cursor_position: Vector2<f32>,
 
-    pub left_mouse_down: bool,
-    pub left_mouse_was_down: bool,
-
     pub egui_scale_factor: f64,
 }
 
 impl Window {
     pub fn egui_pixels_per_point(&self) -> f64 {
         self.sdl.scale_factor() * self.egui_scale_factor
-    }
-
-    pub fn left_mouse_just_pressed(&self) -> bool {
-        self.left_mouse_down && !self.left_mouse_was_down
     }
 }
 
@@ -747,8 +740,6 @@ impl Video {
             sdl: underlying_window,
             renderer: per,
             cursor_position: Vector2::zero(),
-            left_mouse_down: false,
-            left_mouse_was_down: false,
             egui_scale_factor: 2.0,
         };
         id_map.insert(id, window);
@@ -763,6 +754,7 @@ impl Video {
         let engine = Engine {
             video,
             audio: crate::audio::Audio::initial(),
+            input: crate::input::Input::new(),
             main_world: world,
             main_camera: camera,
 
@@ -895,11 +887,6 @@ impl Video {
                 window.cursor_position.x = position.x as f32;
                 window.cursor_position.y = position.y as f32;
             },
-            WindowEvent::MouseInput { device_id: _, state, button } => {
-                if matches!(button, MouseButton::Left) {
-                    window.left_mouse_down = state.is_pressed();
-                }
-            }
             _ => {}
         }
 

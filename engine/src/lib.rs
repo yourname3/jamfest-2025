@@ -2,7 +2,7 @@ use cgmath::Vector2;
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
 
-use winit::{application::ApplicationHandler, event_loop::{ActiveEventLoop, ControlFlow, EventLoop, EventLoopProxy}};
+use winit::{application::ApplicationHandler, event::WindowEvent, event_loop::{ActiveEventLoop, ControlFlow, EventLoop, EventLoopProxy}};
 
 use crate::{gc::Gp, video::{camera::Camera, hdr_tonemap::Tonemap, world::{Viewport, World}, RenderCtx, Video, Window}};
 
@@ -12,6 +12,7 @@ pub mod video;
 pub mod gc;
 pub mod gc_types;
 pub mod ui;
+pub mod input;
 
 /// Our custom user event for winit. Used in part for asynchronously initializing
 /// the app in browser.
@@ -22,6 +23,7 @@ pub enum EngineAppEvent {
 pub struct Engine {
     pub video: crate::Video,
     pub audio: crate::audio::Audio,
+    pub input: crate::input::Input,
 
     // TODO: We really need to be able to access the Window, Viewport, etc...
     pub main_world: Gp<World>,
@@ -92,7 +94,8 @@ impl Engine {
                 total -= step_size;
                
                 gameplay.tick(self);
-                self.get_main_window_mut().left_mouse_was_down = self.get_main_window().left_mouse_down;
+                // Update input at the end of the tick.
+                self.input.tick_end();
 
                 max_loops -= 1;
                 if max_loops <= 0 { break; }
@@ -118,11 +121,22 @@ impl<G: Gameplay> ApplicationHandler<EngineAppEvent> for EngineApp<G> {
     ) {
         let Some((engine, gameplay)) = self.inner.as_mut() else { return; };
 
-         #[cfg(target_arch = "wasm32")]
-        match event {
+        #[cfg(target_arch = "wasm32")]
+        match &event {
             winit::event::WindowEvent::MouseInput { .. } | winit::event::WindowEvent::Touch(_) => {
                 engine.audio.resume_on_gesture();
             },
+            _ => {}
+        }
+
+        match &event {
+            WindowEvent::KeyboardInput { device_id: _, event, is_synthetic: _ } => {
+                engine.input.update_button(input::AnyButton::PhysicalKey(event.physical_key),
+                    event.state.is_pressed());
+            }
+            WindowEvent::MouseInput { device_id, state, button } => {
+                engine.input.update_button(input::AnyButton::Mouse(*button), state.is_pressed());
+            }
             _ => {}
         }
 

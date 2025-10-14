@@ -5,6 +5,7 @@ use std::ops::Range;
 mod level;
 
 use egui::Align2;
+use engine::input::MouseButton;
 use engine::video::asset_import::import_mesh_set_as_gc;
 use engine::video::hdr_tonemap::Tonemap;
 use engine::{game, gc};
@@ -322,7 +323,7 @@ impl Selector {
             }
         }
 
-        if !engine.get_main_window().left_mouse_down {
+        if !engine.input.is_mouse_pressed(MouseButton::Left) {
             self.is_moving = false;
             level.finish_move_from(self.start_x, self.start_y, &dev, self.x, self.y);
             engine.audio.play_speed(&assets.metal_putdown, assets.rng.range(0.95..1.05));
@@ -408,7 +409,7 @@ impl Selector {
                         mesh.update(engine.render_ctx());
                     }
 
-                    if engine.get_main_window().left_mouse_just_pressed() {
+                    if engine.input.is_mouse_just_pressed(MouseButton::Left) {
                         self.is_moving = true;
                         engine.audio.play_speed(&assets.metal_pickup, assets.rng.range(0.95..1.05));
                     }
