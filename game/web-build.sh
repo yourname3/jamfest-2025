@@ -1,2 +1,4 @@
 wasm-pack build --target web
-cp index.html pkg
+if [ -d pkg ]; then
+    cp index.html pkg/
+fi

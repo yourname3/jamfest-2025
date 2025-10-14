@@ -139,7 +139,7 @@ impl<G: Gameplay> ApplicationHandler<EngineAppEvent> for EngineApp<G> {
             {
                 // This will blow up on WASM, but we shouldn't be exiting anyway,
                 // so, it's OK...
-                event_loop.exit();
+                _event_loop.exit();
             }
         }
 
