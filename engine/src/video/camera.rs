@@ -55,7 +55,7 @@ impl Camera {
         let out = inverse * ndc.extend(1.0).extend(1.0);
 
         let dir = out.truncate() - root.truncate();
-        (root.truncate(), out.truncate())
+        (root.truncate(), dir)
     }
 
     /// Takes a plane as a (Point, Normal) pair and returns the intersection of
