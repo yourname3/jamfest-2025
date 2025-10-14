@@ -1,0 +1,45 @@
+[package]
+name = "inline_tweak"
+version = "1.2.2"
+authors = ["Paris DOUADY <paris.douady@hotmail.fr>"]
+edition = "2021"
+keywords = ["gamedev", "tweak", "inline", "config", "tool"]
+description = "Tweak values directly from the source code"
+license = "CC0-1.0"
+readme = "README.md"
+categories = [
+    "config",
+    "game-development",
+    "development-tools",
+    "rust-patterns",
+]
+repository = "https://github.com/Uriopass/inline_tweak"
+rust-version = "1.80.0"
+
+[dependencies]
+
+# Derive
+inline_tweak_derive = { version = "4.0.0", optional = true }
+syn = { version = "2.0", optional = true, default-features = false, features = ["parsing", "printing", "full", "visit"]}
+proc-macro2 = { version = "1.0", optional = true, default-features = false, features = ["span-locations"]}
+
+[features]
+default = []
+release_tweak = []
+derive = ["dep:syn", "dep:proc-macro2", "dep:inline_tweak_derive"]
+
+[[example]]
+name = "release"
+required-features = ["release_tweak"]
+
+[[example]]
+name = "derive"
+required-features = ["derive"]
+
+[[example]]
+name = "derive_edge_cases"
+required-features = ["derive"]
+
+[[example]]
+name = "derive_release"
+required-features = ["derive", "release_tweak"]
