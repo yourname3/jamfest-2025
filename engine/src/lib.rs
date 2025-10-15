@@ -6,6 +6,8 @@ use winit::{application::ApplicationHandler, event::WindowEvent, event_loop::{Ac
 
 use crate::{gc::Gp, video::{camera::Camera, hdr_tonemap::Tonemap, world::{Viewport, World}, RenderCtx, Video, Window}};
 
+pub use winit;
+
 pub mod audio;
 pub mod error;
 pub mod video;

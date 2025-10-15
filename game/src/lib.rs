@@ -4,13 +4,14 @@ use std::ops::Range;
 
 mod level;
 
-use egui::Align2;
+use egui::{Align2};
 use engine::input::MouseButton;
 use engine::video::asset_import::import_mesh_set_as_gc;
 use engine::video::hdr_tonemap::Tonemap;
+use engine::winit::event::{TouchPhase, WindowEvent};
 use engine::{game, gc};
 // /
-use engine::cgmath::{point3, vec3, vec4, Matrix4, SquareMatrix, Vector3, Zero};
+use engine::cgmath::{point3, vec2, vec3, vec4, Matrix4, SquareMatrix, Vector2, Vector3, Zero};
 use engine::cgmath;
 use engine::log;
 
@@ -213,6 +214,13 @@ enum SelectorState {
     V3,
 }
 
+enum SelectorMoveState {
+    NotMoving,
+    MovingWithMouse,
+    /// Moving with the given touch ID.
+    MovingWithTouch(u64),
+}
+
 struct Selector {
     mesh_vert_1: Gp<MeshInstance>,
     mesh_vert_2: Gp<MeshInstance>,
@@ -232,7 +240,9 @@ struct Selector {
     offset_x: f32,
     offset_y: f32,
 
-    is_moving: bool,
+    moving: SelectorMoveState,
+    may_move_with_touch: bool,
+    touch_pos: Vector2<f32>,
 }
 
 impl Selector {
@@ -262,7 +272,9 @@ impl Selector {
             offset_x: 0.0,
             offset_y: 0.0,
 
-            is_moving: false,
+            moving: SelectorMoveState::NotMoving,
+            may_move_with_touch: false,
+            touch_pos: vec2(0.0, 0.0),
         }
     }
 
@@ -290,14 +302,22 @@ impl Selector {
         }
     }
 
-    pub fn do_move(&mut self, engine: &mut Engine, assets: &Assets, level: &mut Level) {
+    pub fn do_move(&mut self, engine: &mut Engine, assets: &Assets, level: &mut Level, finish_now: bool) {
         if matches!(self.state, SelectorState::None) { return; }
 
         let Some(dev) = self.object.get() else { return; };
 
         let viewport = engine.get_viewport();
 
-        let pos = engine.get_cursor_position();
+        let pos = match self.moving {
+            SelectorMoveState::MovingWithMouse => engine.get_cursor_position(),
+            SelectorMoveState::MovingWithTouch(id) => {
+                // Updated in the engine
+                self.touch_pos
+            },
+            SelectorMoveState::NotMoving => unreachable!(),
+        };
+
         let pos = engine.main_camera.convert_screen_to_normalized_device(viewport, pos);
         
         let intersect = engine.main_camera.intersect_ray_with_plane_from_ndc(pos, viewport, (
@@ -323,16 +343,17 @@ impl Selector {
             }
         }
 
-        if !engine.input.is_mouse_pressed(MouseButton::Left) {
-            self.is_moving = false;
+        if finish_now || !engine.input.is_mouse_pressed(MouseButton::Left) {
+            self.moving = SelectorMoveState::NotMoving;
+            self.may_move_with_touch = false;
             level.finish_move_from(self.start_x, self.start_y, &dev, self.x, self.y);
             engine.audio.play_speed(&assets.metal_putdown, assets.rng.range(0.95..1.05));
         }
     }
 
     pub fn update(&mut self, engine: &mut Engine, assets: &Assets, level: &mut Level) {
-        if self.is_moving {
-            self.do_move(engine, assets, level);
+        if !matches!(self.moving, SelectorMoveState::NotMoving) {
+            self.do_move(engine, assets, level, false);
             return;
         }
 
@@ -345,6 +366,7 @@ impl Selector {
         //let Some(invert) = vp.invert() else { return; };
 
         self.state = SelectorState::None;
+        self.may_move_with_touch = false;
         self.object.set(None);
 
         for x in 0..level.grid.cols() {
@@ -410,8 +432,11 @@ impl Selector {
                     }
 
                     if engine.input.is_mouse_just_pressed(MouseButton::Left) {
-                        self.is_moving = true;
+                        self.moving = SelectorMoveState::MovingWithMouse;
                         engine.audio.play_speed(&assets.metal_pickup, assets.rng.range(0.95..1.05));
+                    }
+                    else {
+                        self.may_move_with_touch = true;
                     }
                     return;
                 }
@@ -741,7 +766,8 @@ impl GameplayLogic {
             self.cur_level_idx = idx;
 
             // Reset selector
-            self.selector.is_moving = false;
+            self.selector.may_move_with_touch = false;
+            self.selector.moving = SelectorMoveState::NotMoving;
             self.selector.state = SelectorState::None;
         }
         else {
@@ -822,7 +848,7 @@ impl engine::Gameplay for GameplayLogic {
         // We won if we fulfilled all the goals and are not moving anything.
         let had_won = self.has_won;
         self.has_won = (self.level.nr_goals_fulfilled >= self.level.nr_goals)
-            && !self.selector.is_moving;
+            && matches!(self.selector.moving, SelectorMoveState::NotMoving);
         log::info!("has won? {}", self.has_won);
 
         if self.has_won && !had_won {
@@ -855,7 +881,32 @@ impl engine::Gameplay for GameplayLogic {
         //game.main_camera.position.set(point3(15.0 * f32::cos(self.theta), 15.0 * f32::sin(self.theta), 0.0));
     }
 
-    
+    fn event(&mut self, engine: &mut Engine, event: &WindowEvent) {
+        match event {
+            WindowEvent::Touch(touch) => {
+                // If we are already moving with touch, handle those updates.
+                if let SelectorMoveState::MovingWithTouch(id) = self.selector.moving {
+                    if touch.id == id {
+                        self.selector.touch_pos = vec2(touch.location.x as f32, touch.location.y as f32);
+                        if touch.phase == TouchPhase::Cancelled || touch.phase == TouchPhase::Ended {
+                            // Finish the touch right now.
+                            self.selector.do_move(engine, &self.assets, &mut self.level, true);
+                        }
+                    }
+                }
+
+                if self.selector.may_move_with_touch {
+                    if touch.phase == TouchPhase::Started {
+                        self.selector.moving = SelectorMoveState::MovingWithTouch(touch.id);
+                        self.selector.touch_pos = vec2(touch.location.x as f32, touch.location.y as f32);
+                    }
+                }
+
+                
+            },
+            _ => {}
+        }
+    }
 
     fn ui(&mut self, engine: &mut Engine, ctx: &egui::Context) {
         // We have to set this on the engine's Window object
