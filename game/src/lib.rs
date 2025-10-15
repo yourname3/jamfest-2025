@@ -93,7 +93,7 @@ impl InstancePool {
             v.clear();
         }
 
-        log::info!("recycled {} mesh instances", total);
+        //log::info!("recycled {} mesh instances", total);
     }
 }
 
@@ -345,31 +345,18 @@ impl Selector {
             }
         }
 
-        if finish_now || !engine.input.is_mouse_pressed(MouseButton::Left) {
+        let finish_now_mouse = matches!(self.moving, SelectorMoveState::MovingWithMouse) && !engine.input.is_mouse_pressed(MouseButton::Left);
+
+        if finish_now || finish_now_mouse {
             self.moving = SelectorMoveState::NotMoving;
             level.finish_move_from(self.start_x, self.start_y, &dev, self.x, self.y);
             engine.audio.play_speed(&assets.metal_putdown, assets.rng.range(0.95..1.05));
         }
     }
 
-    pub fn update(&mut self, engine: &mut Engine, assets: &Assets, level: &mut Level) {
-        if !matches!(self.moving, SelectorMoveState::NotMoving) {
-            self.do_move(engine, assets, level, false);
-            return;
-        }
-
-        let pos = engine.get_cursor_position();
+    fn check_screen_pos(&mut self, engine: &mut Engine, level: &Level, pos: Vector2<f32>) -> bool {
         let pos = engine.main_camera.convert_screen_to_normalized_device(engine.get_viewport(), pos);
         let vp = engine.main_camera.get_view_projection_matrix(engine.get_viewport());
-
-        //log::info!("cursor pos @ {:?}", pos);
-
-        //let Some(invert) = vp.invert() else { return; };
-
-        self.state = SelectorState::None;
-        // Take whatever touch event we might have from the last event().
-        let touch = self.touch_started.take();
-        self.object.set(None);
 
         for x in 0..level.grid.cols() {
             for y in 0..level.grid.rows() {
@@ -404,9 +391,6 @@ impl Selector {
                     if !check_all_squares(dev.ty.get_cells()) { continue; }
 
                     //log::info!("candidate object @ {:?} -> {:?}", low_point, high_point);
-
-                    
-
                     // Cursor should be overlapping..
                     self.state = dev.ty.get_selector();
                     // If the object was not selectable, keep looking.
@@ -432,20 +416,34 @@ impl Selector {
                         mesh.modulate.set(vec4(1.0, 1.0, 1.0, 1.0));
                         mesh.update(engine.render_ctx());
                     }
-
-                    let play_pickup_snd = || engine.audio.play_speed(&assets.metal_pickup, assets.rng.range(0.95..1.05));
-
-                    if engine.input.is_mouse_just_pressed(MouseButton::Left) {
-                        self.moving = SelectorMoveState::MovingWithMouse;
-                        play_pickup_snd();
-                    }
-                    else if let Some(touch) = touch {
-                        self.moving = SelectorMoveState::MovingWithTouch(touch);
-                        play_pickup_snd();
-                    }
-                    return;
+                    return true;
                 }
             }
+        }
+        return false;
+    }
+
+    pub fn update(&mut self, engine: &mut Engine, assets: &Assets, level: &mut Level) {
+        if !matches!(self.moving, SelectorMoveState::NotMoving) {
+            self.do_move(engine, assets, level, false);
+            return;
+        }        
+
+        self.state = SelectorState::None;
+        // Take whatever touch event we might have from the last event().
+        let touch = self.touch_started.take();
+        self.object.set(None);
+
+        if self.check_screen_pos(engine, level, engine.get_cursor_position())
+            && engine.input.is_mouse_just_pressed(MouseButton::Left) {
+            self.moving = SelectorMoveState::MovingWithMouse;
+            engine.audio.play_speed(&assets.metal_pickup, assets.rng.range(0.95..1.05));
+
+        }
+        else if self.check_screen_pos(engine, level, self.touch_pos) && let Some(touch) = touch {
+            log::info!("Start moving with touch!!!");
+            self.moving = SelectorMoveState::MovingWithTouch(touch);
+            engine.audio.play_speed(&assets.metal_pickup, assets.rng.range(0.95..1.05));
         }
     }
 }
@@ -854,7 +852,7 @@ impl engine::Gameplay for GameplayLogic {
         let had_won = self.has_won;
         self.has_won = (self.level.nr_goals_fulfilled >= self.level.nr_goals)
             && matches!(self.selector.moving, SelectorMoveState::NotMoving);
-        log::info!("has won? {}", self.has_won);
+        // log::info!("has won? {}", self.has_won);
 
         if self.has_won && !had_won {
             engine.audio.play(&self.assets.win);
@@ -889,6 +887,7 @@ impl engine::Gameplay for GameplayLogic {
     fn event(&mut self, engine: &mut Engine, event: &WindowEvent) {
         match event {
             WindowEvent::Touch(touch) => {
+                log::info!("touch event: {:?}", touch);
                 // If we are already moving with touch, handle those updates.
                 if let SelectorMoveState::MovingWithTouch(id) = self.selector.moving {
                     if touch.id == id {
