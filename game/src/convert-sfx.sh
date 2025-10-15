@@ -1,0 +1,1 @@
+find . -name "*.wav" -exec bash -c 'ffmpeg -i "$0" "${0%.wav}.flac"' {} \;

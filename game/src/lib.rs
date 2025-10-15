@@ -596,18 +596,18 @@ impl Assets {
             rng: Rng::new(),
 
             metal_sfx: [
-                sfx!("./assets/metal_1.wav"),
-                sfx!("./assets/metal_2.wav"),
-                sfx!("./assets/metal_3.wav"),
-                sfx!("./assets/metal_4.wav"),
-                sfx!("./assets/metal_5.wav"),
+                sfx!("./assets/metal_1.flac"),
+                sfx!("./assets/metal_2.flac"),
+                sfx!("./assets/metal_3.flac"),
+                sfx!("./assets/metal_4.flac"),
+                sfx!("./assets/metal_5.flac"),
             ],
-            metal_pickup: sfx!("./assets/metal_pickup.wav"),
-            metal_putdown: sfx!("./assets/metal_putdown.wav"),
-            move_err: sfx!("./assets/move_err.wav"),
+            metal_pickup: sfx!("./assets/metal_pickup.flac"),
+            metal_putdown: sfx!("./assets/metal_putdown.flac"),
+            move_err: sfx!("./assets/move_err.flac"),
 
-            win: sfx!("./assets/win.wav"),
-            click: sfx!("./assets/click.wav"),
+            win: sfx!("./assets/win.flac"),
+            click: sfx!("./assets/click.flac"),
 
             node_mix: mesh!(ctx, "./assets/mix_node.glb"),
             node_mix_mat: lock_unlock!(ctx, lock_data, "./assets/label_mix.png"),
