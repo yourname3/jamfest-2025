@@ -30,7 +30,7 @@ egui-winit = { version = "0.33.0", default-features = false }
 grid = "1.0.0"
 inline_tweak = { path = "../inline_tweak", features = ["derive"] }
 engine = { version = "0.1.0", path = "../engine" }
-tiled = "0.15.0"
+tiled = { version = "0.15.0", default-features = false }
 smallrand = { version = "1.0.1", default-features = false }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
