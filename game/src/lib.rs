@@ -241,7 +241,9 @@ struct Selector {
     offset_y: f32,
 
     moving: SelectorMoveState,
-    may_move_with_touch: bool,
+    
+    /// Contains the last touch start event that happened at the given point.
+    touch_started: Option<u64>,
     touch_pos: Vector2<f32>,
 }
 
@@ -273,7 +275,7 @@ impl Selector {
             offset_y: 0.0,
 
             moving: SelectorMoveState::NotMoving,
-            may_move_with_touch: false,
+            touch_started: None,
             touch_pos: vec2(0.0, 0.0),
         }
     }
@@ -345,7 +347,6 @@ impl Selector {
 
         if finish_now || !engine.input.is_mouse_pressed(MouseButton::Left) {
             self.moving = SelectorMoveState::NotMoving;
-            self.may_move_with_touch = false;
             level.finish_move_from(self.start_x, self.start_y, &dev, self.x, self.y);
             engine.audio.play_speed(&assets.metal_putdown, assets.rng.range(0.95..1.05));
         }
@@ -366,7 +367,8 @@ impl Selector {
         //let Some(invert) = vp.invert() else { return; };
 
         self.state = SelectorState::None;
-        self.may_move_with_touch = false;
+        // Take whatever touch event we might have from the last event().
+        let touch = self.touch_started.take();
         self.object.set(None);
 
         for x in 0..level.grid.cols() {
@@ -431,12 +433,15 @@ impl Selector {
                         mesh.update(engine.render_ctx());
                     }
 
+                    let play_pickup_snd = || engine.audio.play_speed(&assets.metal_pickup, assets.rng.range(0.95..1.05));
+
                     if engine.input.is_mouse_just_pressed(MouseButton::Left) {
                         self.moving = SelectorMoveState::MovingWithMouse;
-                        engine.audio.play_speed(&assets.metal_pickup, assets.rng.range(0.95..1.05));
+                        play_pickup_snd();
                     }
-                    else {
-                        self.may_move_with_touch = true;
+                    else if let Some(touch) = touch {
+                        self.moving = SelectorMoveState::MovingWithTouch(touch);
+                        play_pickup_snd();
                     }
                     return;
                 }
@@ -766,7 +771,7 @@ impl GameplayLogic {
             self.cur_level_idx = idx;
 
             // Reset selector
-            self.selector.may_move_with_touch = false;
+            self.selector.touch_started = None;
             self.selector.moving = SelectorMoveState::NotMoving;
             self.selector.state = SelectorState::None;
         }
@@ -894,15 +899,13 @@ impl engine::Gameplay for GameplayLogic {
                         }
                     }
                 }
-
-                if self.selector.may_move_with_touch {
+                else if let SelectorMoveState::NotMoving = self.selector.moving {
                     if touch.phase == TouchPhase::Started {
-                        self.selector.moving = SelectorMoveState::MovingWithTouch(touch.id);
+                        // Let the selector start moving from this touch.
+                        self.selector.touch_started = Some(touch.id);
                         self.selector.touch_pos = vec2(touch.location.x as f32, touch.location.y as f32);
                     }
                 }
-
-                
             },
             _ => {}
         }
