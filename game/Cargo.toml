@@ -3,6 +3,12 @@ name = "game"
 version = "0.1.0"
 edition = "2024"
 
+[package.metadata.android.sdk]
+# Target minimum of 26 for now for aaudio. Perhaps there is a way to tell rodio
+# to use an older audio backend.
+min_sdk_version = 26
+target_sdk_version = 30
+
 [package.metadata.wasm-pack.profile.release]
 wasm-opt = ["-Oz",
     "--enable-mutable-globals",
@@ -18,20 +24,23 @@ wasm-opt = ["-Oz",
 
 [lib]
 crate-type = ["cdylib", "rlib"]
+path = "src/lib.rs"
 
-[[bin]]
-name = "game"
-path = "src/main.rs"
+# [[bin]]
+# name = "game"
+# path = "src/main.rs"
 
 [dependencies]
 egui = { version = "0.33.0", default-features = false }
 egui-wgpu = "0.33.0"
-egui-winit = { version = "0.33.0", default-features = false }
+# egui-winit = { version = "0.33.0", default-features = false }
 grid = "1.0.0"
 inline_tweak = { path = "../inline_tweak", features = ["derive"] }
 engine = { version = "0.1.0", path = "../engine" }
 tiled = { version = "0.15.0", default-features = false }
 smallrand = { version = "1.0.1", default-features = false }
+android-activity = { version = "0.6.0", features = ["game-activity"] }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen = "0.2"
+

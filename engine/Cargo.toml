@@ -36,9 +36,6 @@ web-time = "1.1.0"
 wgpu = { version = "27.0.0" }
 winit = "0.30.12"
 
-[lib]
-crate-type = ["cdylib", "rlib"]
-
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 console_error_panic_hook = "0.1.6"
 console_log = "1.0"
@@ -53,3 +50,4 @@ web-sys = { version = "0.3", features = [
 # Necessary for cpal to realize we want its web backend, see 
 # https://github.com/RustAudio/cpal/issues/881
 cpal = {version = "0.16.0", features = ["wasm-bindgen"] }
+

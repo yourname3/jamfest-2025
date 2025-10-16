@@ -1,4 +1,3 @@
 use engine::game_main;
-use game::run;
 
-game_main!();
+game_main!(game::run);

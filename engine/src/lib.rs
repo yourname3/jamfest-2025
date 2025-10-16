@@ -208,11 +208,24 @@ impl<G: Gameplay> ApplicationHandler<EngineAppEvent> for EngineApp<G> {
     }
 }
 
-pub fn run_game_impl<G: Gameplay>() {
+pub fn run_game_impl<G: Gameplay>(
+    #[cfg(target_os = "android")]
+    app: winit::platform::android::activity::AndroidApp
+) {
+    #[cfg(not(target_os = "android"))]
     let event_loop = EventLoop::with_user_event()
         .build().unwrap();
 
-    #[cfg(not(target_arch = "wasm32"))]
+    #[cfg(target_os = "android")]
+    let event_loop = {
+        use winit::platform::android::EventLoopBuilderExtAndroid;
+        EventLoop::with_user_event()
+            .with_android_app(app)
+            .build()
+            .unwrap()
+    };
+
+    #[cfg(all(not(target_arch = "wasm32"), not(target_os = "android")))]
     env_logger::init();
 
     // Apparently this can cause a RefCell double-borrow on WASM/Web, although
@@ -247,6 +260,7 @@ pub use log;
 #[macro_export]
 macro_rules! game {
     ($gameplay:ty) => {
+        #[cfg(not(target_os = "android"))]
         pub fn run() {
             engine::run_game_impl::<$gameplay>();
         }
@@ -256,14 +270,29 @@ macro_rules! game {
         pub fn run_web() {
             engine::run_game_on_web_impl::<$gameplay>();
         }
+
+        #[cfg(target_os = "android")]
+        #[unsafe(no_mangle)]
+        fn android_main(app: engine::winit::platform::android::activity::AndroidApp) {
+            // TODO: If we want to, we could enable logging.
+            // android_logger::init_once(
+            //     android_logger::Config::default().with_min_level(log::Level::Trace),
+            // );
+
+           engine::run_game_impl::<$gameplay>(app);
+        }
     }
 }
 
 #[macro_export]
 macro_rules! game_main {
-    () => {
+    ($fn:expr) => {
+        #[cfg(not(target_os = "android"))]
         pub fn main() {
-            crate::run();
+            $fn();
         }
+
+        #[cfg(target_os = "android")]
+        pub fn main() { }
     }
 }
