@@ -107,7 +107,7 @@ impl Audio {
         let decoder = rodio::decoder::Decoder::new_looped(cursor).unwrap();
         let music = decoder.amplify(amp);
 
-        log::info!("playing music: {} {} {:?}", music.sample_rate(), music.channels(), music.total_duration());
+        log::info!("audio: playing music: {} {} {:?}", music.sample_rate(), music.channels(), music.total_duration());
 
         let AudioBackend::Open(handle) = &self.backend else {
             // If we don't have a handle *yet*, store the music for later.
@@ -115,6 +115,8 @@ impl Audio {
             self.stored_music = Some(music);
             return;
         };
+
+        log::info!("audio: actually playing music!");
 
         handle.mixer().add(music);
     }
