@@ -231,8 +231,12 @@ pub fn run_game_impl<G: Gameplay>(
     env_logger::init();
 
     #[cfg(target_os = "android")]
+    // With this setup, you can view the logs with something like:
+    //    adb logcat | grep "G::GAME_TITLE"
     android_logger::init_once(
-        android_logger::Config::default(),
+        android_logger::Config::default()
+            .with_max_level(log::LevelFilter::Info)
+            .with_tag(G::GAME_TITLE),
     );
 
     // Apparently this can cause a RefCell double-borrow on WASM/Web, although
