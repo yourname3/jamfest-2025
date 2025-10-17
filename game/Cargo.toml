@@ -46,4 +46,6 @@ smallrand = { version = "1.0.1", default-features = false }
 wasm-bindgen = "0.2"
 
 [target.'cfg(target_os = "android")'.dependencies]
+# Note: We want to use native-activity so we don't have to provide extra
+# stuff. game-activity is missing some symbols (e.g. ANativeActivity_onCreate)
 android-activity = { version = "0.6.0", features = ["native-activity"] }
