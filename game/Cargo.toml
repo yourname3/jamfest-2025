@@ -20,8 +20,12 @@ build_targets = [
 apk_name = "bens-beams"
 strip = "default"
 
+# Necessary for icon to work.
+resources = "src/assets/android/res"
+
 [package.metadata.android.application]
 label = "ben's beams"
+icon = "@mipmap/ic_launcher"
 
 [package.metadata.wasm-pack.profile.release]
 wasm-opt = ["-Oz",
