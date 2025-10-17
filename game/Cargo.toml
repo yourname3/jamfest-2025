@@ -9,6 +9,17 @@ edition = "2024"
 min_sdk_version = 26
 target_sdk_version = 30
 
+[package.metadata.android]
+package = "io.itch.some_games_by_bee.bens_beams"
+build_targets = [
+    "armv7-linux-androideabi",
+    "aarch64-linux-android",
+    "i686-linux-android",
+    "x86_64-linux-android",
+]
+apk_name = "ben's beams"
+strip = "default"
+
 [package.metadata.wasm-pack.profile.release]
 wasm-opt = ["-Oz",
     "--enable-mutable-globals",
