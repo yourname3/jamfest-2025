@@ -118,6 +118,10 @@ impl Audio {
 
         log::info!("audio: actually playing music!");
 
-        handle.mixer().add(music);
+        let sink = rodio::Sink::connect_new(handle.mixer());
+        sink.append(music);
+        sink.play();
+        
+        self.current_music_sink = Some(sink);
     }
 }
