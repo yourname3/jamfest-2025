@@ -225,8 +225,15 @@ pub fn run_game_impl<G: Gameplay>(
             .unwrap()
     };
 
+    // TODO: Should logging be init'd before EventLoop? Probably...?
+
     #[cfg(all(not(target_arch = "wasm32"), not(target_os = "android")))]
     env_logger::init();
+
+    #[cfg(target_os = "android")]
+    android_logger::init_once(
+        android_logger::Config::default(),
+    );
 
     // Apparently this can cause a RefCell double-borrow on WASM/Web, although
     // I'm not sure how often that actually happens...
@@ -273,12 +280,7 @@ macro_rules! game {
 
         #[cfg(target_os = "android")]
         #[unsafe(no_mangle)]
-        fn android_main(app: engine::winit::platform::android::activity::AndroidApp) {
-            // TODO: If we want to, we could enable logging.
-            // android_logger::init_once(
-            //     android_logger::Config::default().with_min_level(log::Level::Trace),
-            // );
-
+        pub fn android_main(app: engine::winit::platform::android::activity::AndroidApp) {
            engine::run_game_impl::<$gameplay>(app);
         }
     }
