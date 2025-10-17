@@ -17,8 +17,11 @@ build_targets = [
     "i686-linux-android",
     "x86_64-linux-android",
 ]
-apk_name = "ben's beams"
+apk_name = "bens-beams"
 strip = "default"
+
+[package.metadata.android.application]
+label = "ben's beams"
 
 [package.metadata.wasm-pack.profile.release]
 wasm-opt = ["-Oz",
